@@ -12,47 +12,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a6b0ec17d0cfb64386605ee95833c2c, type: 3}
   m_Name: FireTowerData
   m_EditorClassIdentifier: 
-  towerName: New Tower
-  description: Tower description here.
+  towerName: "Th\xE1p L\u1EEDa"
+  description: "Tia laser li\xEAn t\u1EE5c. \nS\xE1t th\u01B0\u01A1ng t\u0103ng d\u1EA7n
+    khi gi\u1EEF c\xF9ng m\u1EE5c ti\xEAu."
   icon: {fileID: 0}
-  themeColor: {r: 1, g: 1, b: 1, a: 1}
+  themeColor: {r: 0.94716984, g: 0.27469775, b: 0.062548816, a: 1}
   towerPrefab: {fileID: 0}
   levels:
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
-    rampAmount: 0
-    rampInterval: 0
-    maxDamage: 0
+  - damage: 4
+    attackCooldown: 1
+    range: 2.5
+    cost: 80
+    rampAmount: 1
+    rampInterval: 2
+    maxDamage: 10
     slowPercent: 0
     freezeChance: 0
     freezeDuration: 0
     blastRadius: 0
     towerSprite: {fileID: 0}
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
-    rampAmount: 0
-    rampInterval: 0
-    maxDamage: 0
+  - damage: 6
+    attackCooldown: 1
+    range: 3
+    cost: 100
+    rampAmount: 2
+    rampInterval: 2
+    maxDamage: 18
     slowPercent: 0
     freezeChance: 0
     freezeDuration: 0
     blastRadius: 0
     towerSprite: {fileID: 0}
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
-    rampAmount: 0
-    rampInterval: 0
-    maxDamage: 0
+  - damage: 8
+    attackCooldown: 1
+    range: 3.5
+    cost: 130
+    rampAmount: 3
+    rampInterval: 2
+    maxDamage: 28
     slowPercent: 0
     freezeChance: 0
     freezeDuration: 0
     blastRadius: 0
     towerSprite: {fileID: 0}
-  abilityName: None
-  abilityDescription: 
+  abilityName: "B\xF9ng N\u1ED5"
+  abilityDescription: "M\u1ED7i 10 gi\xE2y, t\u1ED1c \u0111\u1ED9 b\u1EAFn t\u0103ng
+    g\u1EA5p \u0111\xF4i trong 1 gi\xE2y."

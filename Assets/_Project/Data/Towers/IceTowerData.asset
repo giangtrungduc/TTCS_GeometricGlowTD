@@ -12,47 +12,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a6b0ec17d0cfb64386605ee95833c2c, type: 3}
   m_Name: IceTowerData
   m_EditorClassIdentifier: 
-  towerName: New Tower
-  description: Tower description here.
+  towerName: "Th\xE1p B\u0103ng"
+  description: "L\xE0m ch\u1EADm t\u1EA5t c\u1EA3 k\u1EBB \u0111\u1ECBch trong t\u1EA7m.
+    \r\nH\u1ED7 tr\u1EE3 tuy\u1EC7t v\u1EDDi cho tower kh\xE1c."
   icon: {fileID: 0}
-  themeColor: {r: 1, g: 1, b: 1, a: 1}
+  themeColor: {r: 0.12941177, g: 0.5882353, b: 0.9529412, a: 1}
   towerPrefab: {fileID: 0}
   levels:
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
+  - damage: 2
+    attackCooldown: 1
+    range: 2.5
+    cost: 60
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
-    slowPercent: 0
+    slowPercent: 0.2
     freezeChance: 0
     freezeDuration: 0
     blastRadius: 0
     towerSprite: {fileID: 0}
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
+  - damage: 3
+    attackCooldown: 1
+    range: 3
+    cost: 80
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
-    slowPercent: 0
+    slowPercent: 0.3
     freezeChance: 0
     freezeDuration: 0
     blastRadius: 0
     towerSprite: {fileID: 0}
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
+  - damage: 5
+    attackCooldown: 1
+    range: 3.5
+    cost: 110
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
-    slowPercent: 0
-    freezeChance: 0
-    freezeDuration: 0
+    slowPercent: 0.4
+    freezeChance: 0.4
+    freezeDuration: 2
     blastRadius: 0
     towerSprite: {fileID: 0}
-  abilityName: None
-  abilityDescription: 
+  abilityName: "\u0110\xF3ng B\u0103ng"
+  abilityDescription: "M\u1ED7i 2 gi\xE2y, 40% khi\u1EBFn k\u1EBB \u0111\u1ECBch
+    \u0111\xF3ng b\u0103ng  ho\xE0n to\xE0n trong 2 gi\xE2y."

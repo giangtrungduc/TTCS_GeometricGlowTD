@@ -12,47 +12,50 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a6b0ec17d0cfb64386605ee95833c2c, type: 3}
   m_Name: LightTowerData
   m_EditorClassIdentifier: 
-  towerName: New Tower
-  description: Tower description here.
+  towerName: "Th\xE1p \xC1nh S\xE1ng"
+  description: "B\u1EAFn c\u1EA7u n\u0103ng l\u01B0\u1EE3ng g\xE2y s\xE1t th\u01B0\u01A1ng
+    v\xF9ng. \r\nHi\u1EC7u qu\u1EA3 nh\u1EA5t khi k\u1EBB \u0111\u1ECBch t\u1EE5
+    c\u1EE5m."
   icon: {fileID: 0}
-  themeColor: {r: 1, g: 1, b: 1, a: 1}
+  themeColor: {r: 1, g: 0.8940652, b: 0.027450979, a: 1}
   towerPrefab: {fileID: 0}
   levels:
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
+  - damage: 25
+    attackCooldown: 1.5
+    range: 3
+    cost: 100
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
     slowPercent: 0
     freezeChance: 0
     freezeDuration: 0
-    blastRadius: 0
+    blastRadius: 1.5
     towerSprite: {fileID: 0}
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
+  - damage: 35
+    attackCooldown: 1.3
+    range: 3.5
+    cost: 130
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
     slowPercent: 0
     freezeChance: 0
     freezeDuration: 0
-    blastRadius: 0
+    blastRadius: 1.8
     towerSprite: {fileID: 0}
-  - damage: 0
-    attackCooldown: 0
-    range: 0
-    cost: 0
+  - damage: 50
+    attackCooldown: 1
+    range: 4
+    cost: 170
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
     slowPercent: 0
     freezeChance: 0
     freezeDuration: 0
-    blastRadius: 0
+    blastRadius: 2
     towerSprite: {fileID: 0}
-  abilityName: None
-  abilityDescription: 
+  abilityName: "Ph\xE1n X\xE9t"
+  abilityDescription: "20% b\u1EAFn 2 c\u1EA7u c\xF9ng l\xFAc. \r\n1% b\u1EAFn 4
+    c\u1EA7u (c\u1EF1c hi\u1EBFm nh\u01B0ng c\u1EF1c m\u1EA1nh)."
