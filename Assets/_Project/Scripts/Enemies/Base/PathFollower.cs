@@ -1,35 +1,50 @@
-﻿using TowerDefense.Core;
-using UnityEditor;
+﻿using System.Collections.Generic;
+using TowerDefense.Core;
 using UnityEngine;
 
 namespace TowerDefense.Enemies
 {
+    /// <summary>
+    /// Điều khiển di chuyển của enemy dọc theo WaypointPath.
+    /// Hỗ trợ hệ thống speed modifier đa nguồn (Freeze > Slow > SpeedBuff).
+    /// An toàn với Object Pool: mọi trạng thái đều được reset trong Initialize().
+    /// </summary>
     public class PathFollower : MonoBehaviour
     {
-        // ============================
+        // ===========================
+        // CONSTANTS
+        // ===========================
+
+        private const float WaypointReachThresholdSqr = 0.0025f;
+        private const float MinimumSpeed = 0.05f;
+
+        private const string ModifierFreeze = "Freeze";
+        private const string ModifierSlow = "Slow";
+        private const string ModifierBuff = "SpeedBuff";
+
+        // ===========================
         // STATE
-        // ============================
+        // ===========================
+
         private WaypointPath currentPath;
-
-        // Tốc độ di chuyển
         private float moveSpeed;
-
-        // Tốc độ gốc
         private float baseMoveSpeed;
-
-        // Index waypoint đang đi tới
         private int currentWaypointIndex;
-
-        // Đã đến cuối đường chưa
         private bool hasReachedEnd;
-
-        //Đã được khởi tạo chưa (tránh di chuyển khi chưa init)
         private bool isInitialized;
 
-        // ============================
+        private readonly Dictionary<string, Dictionary<int, float>> speedModifiers = new Dictionary<string, Dictionary<int, float>>();
+
+        // ===========================
         // PROPERTIES
-        // ============================
+        // ===========================
+
         public int CurrentWaypointIndex => currentWaypointIndex;
+        public bool HasReachedEnd => hasReachedEnd;
+        public float CurrentSpeed => moveSpeed;
+        public float BaseMoveSpeed => baseMoveSpeed;
+
+        /// <summary>Khoảng cách Euclidean đến waypoint tiếp theo.</summary>
         public float DistanceToNextWaypoint
         {
             get
@@ -41,6 +56,11 @@ namespace TowerDefense.Enemies
                 return Vector2.Distance((Vector2)transform.position, target);
             }
         }
+
+        /// <summary>
+        /// Tỉ lệ tiến độ [0, 1] tính theo khoảng cách thực trên path.
+        /// Chính xác đến từng pixel trong segment hiện tại.
+        /// </summary>
         public float ProgressRatio
         {
             get
@@ -48,154 +68,272 @@ namespace TowerDefense.Enemies
                 if (!isInitialized || currentPath == null || currentPath.Length < 2) return 0f;
                 if (hasReachedEnd) return 1f;
 
-                float segmentProgress = 0f;
-                if(currentWaypointIndex > 0)
-                {
-                    Vector2 prevWaypoint = currentPath.GetWaypoint(currentWaypointIndex - 1);
-                    Vector2 nextWaypoint = currentPath.GetWaypoint(currentWaypointIndex);
-                    float segmentLength = Vector2.Distance(prevWaypoint, nextWaypoint);
+                // Các segment đã hoàn thành hoàn toàn
+                int completedWaypoints = currentWaypointIndex - 1;
 
-                    if (segmentProgress > 1.0f)
+                // Tiến độ trong segment hiện tại
+                float segmentProgress = 0f;
+                if (currentWaypointIndex > 0 && currentWaypointIndex < currentPath.Length)
+                {
+                    Vector2 prev = currentPath.GetWaypoint(currentWaypointIndex - 1);
+                    Vector2 next = currentPath.GetWaypoint(currentWaypointIndex);
+                    float segmentLength = Vector2.Distance(prev, next);
+
+                    if (segmentLength > 0.0001f)
                     {
-                        float distCovered = segmentLength - DistanceToNextWaypoint;
-                        segmentProgress = distCovered / segmentLength;
+                        float distanceCovered = segmentLength - DistanceToNextWaypoint;
+                        segmentProgress = Mathf.Clamp01(distanceCovered / segmentLength);
                     }
                 }
-                float totalSegments = currentPath.Length - 1;
-                float completedSegments = currentWaypointIndex - 1 + segmentProgress;
 
-                return Mathf.Clamp01(completedSegments / totalSegments);
+                float totalSegments = currentPath.Length - 1;
+                return Mathf.Clamp01((completedWaypoints + segmentProgress) / totalSegments);
             }
         }
 
-        public float CurrentSpeed => moveSpeed;
-        public float BaseMoveSpeed => baseMoveSpeed;
-        public bool HasReachedEnd => hasReachedEnd;
+        // ===========================
+        // LIFECYCLE
+        // ===========================
 
-        // ============================
-        // INIT
-        // ============================
-
+        /// <summary>
+        /// Khởi tạo enemy tại spawn point và chuẩn bị di chuyển.
+        /// Phải gọi trước khi object được kích hoạt.
+        /// An toàn với Object Pool: reset toàn bộ trạng thái cũ.
+        /// </summary>
         public void Initialize(WaypointPath path, float speed)
         {
-            if (path == null) return;
-            if (path.Length < 2) return;
+            if (path == null)
+            {
+                Debug.LogWarning($"[PathFollower] Initialize thất bại: path là null ({name})");
+                return;
+            }
+            if (path.Length < 2)
+            {
+                Debug.LogWarning($"[PathFollower] Initialize thất bại: path cần ít nhất 2 waypoint ({name})");
+                return;
+            }
+            if (speed <= 0f)
+            {
+                Debug.LogWarning($"[PathFollower] Initialize: speed <= 0, enemy sẽ không di chuyển ({name})");
+            }
 
             currentPath = path;
             baseMoveSpeed = speed;
-            moveSpeed = speed;
-
-            transform.position = (Vector3)path.GetSpawnPoint();
-
-            currentWaypointIndex = 1;
-
+            currentWaypointIndex = 1;       // Waypoint 0 là spawn point, bắt đầu tiến đến waypoint 1
             hasReachedEnd = false;
             isInitialized = true;
+
+            // Đặt enemy đúng vị trí spawn
+            transform.position = (Vector3)path.GetSpawnPoint();
+
+            // Reset toàn bộ effect cũ (quan trọng khi dùng Object Pool)
+            speedModifiers.Clear();
+            RecalculateSpeed();
+
+            // Quay mặt về phía waypoint đầu tiên ngay từ đầu
+            if (currentWaypointIndex < currentPath.Length)
+            {
+                FlipSpriteTowards((Vector2)transform.position,
+                                  currentPath.GetWaypoint(currentWaypointIndex));
+            }
         }
 
-        public void OnEnable()
-        {
-            hasReachedEnd = false;
-        }
         private void Update()
         {
-            if (!isInitialized || hasReachedEnd) return;
+            if (!isInitialized || hasReachedEnd || currentPath == null) return;
 
+            // Freeze hoặc speed = 0 thì đứng im
             if (moveSpeed <= 0f) return;
 
             MoveTowardsNextWaypoint();
         }
 
+        // ===========================
+        // MOVEMENT
+        // ===========================
+
         private void MoveTowardsNextWaypoint()
         {
-            // Lấy vị trí waypoint đích
+            Vector2 currentPos = transform.position;
             Vector2 targetPos = currentPath.GetWaypoint(currentWaypointIndex);
 
-            // Di chuyển
-            Vector2 currentPos = transform.position;
             Vector2 newPos = Vector2.MoveTowards(currentPos, targetPos, moveSpeed * Time.deltaTime);
-
             transform.position = newPos;
 
-            RotateTowardsMovement(currentPos, newPos);
-            
-            float distanceToTarget = Vector2.Distance(newPos, targetPos);
+            FlipSpriteTowards(currentPos, newPos);
 
-            if(distanceToTarget < 0.05f)
+            // Dùng sqrMagnitude thay Distance để tránh Sqrt mỗi frame
+            if ((newPos - targetPos).sqrMagnitude < WaypointReachThresholdSqr)
             {
-                currentWaypointIndex++;
-                if(currentWaypointIndex >= currentPath.Length)
-                {
-                    ReachEnd();
-                }
+                AdvanceWaypoint();
             }
         }
-        private void RotateTowardsMovement(Vector2 from, Vector2 to)
+
+        private void AdvanceWaypoint()
         {
-            Vector2 direction = to - from;
+            currentWaypointIndex++;
 
-            if (direction.sqrMagnitude < 0.0001f) return;
-
-            if(direction.x != 0)
+            if (currentWaypointIndex >= currentPath.Length)
             {
-                Vector3 scale = transform.localScale;
-                scale.x = direction.x < 0 ? -Mathf.Abs(scale.x) : Mathf.Abs(scale.x);
-
-                transform.localScale = scale;
+                OnReachedEnd();
             }
         }
-        private void ReachEnd()
+
+        private void OnReachedEnd()
         {
             if (hasReachedEnd) return;
 
             hasReachedEnd = true;
-
             GameEvents.RaiseEnemyReachedEnd(gameObject);
-
             gameObject.SetActive(false);
         }
-        public void ModifySpeed(float multiplier)
+
+        /// <summary>Lật sprite theo hướng di chuyển ngang (không dùng Rotate để tránh ảnh hưởng child).</summary>
+        private void FlipSpriteTowards(Vector2 from, Vector2 to)
         {
-            moveSpeed = baseMoveSpeed * multiplier;
-            if (moveSpeed < 0f) moveSpeed = 0f;
-        }
-        public void ResetSpeed()
-        {
-            moveSpeed = baseMoveSpeed;
+            float dx = to.x - from.x;
+            if (Mathf.Abs(dx) < 0.0001f) return;
+
+            Vector3 scale = transform.localScale;
+            scale.x = dx < 0f ? -Mathf.Abs(scale.x) : Mathf.Abs(scale.x);
+            transform.localScale = scale;
         }
 
+        // ===========================
+        // SPEED MODIFIER API
+        // ===========================
+
+        /// <summary>
+        /// Thêm hoặc cập nhật một speed modifier.
+        /// </summary>
+        /// <param name="type">Loại effect: "Freeze", "Slow", "SpeedBuff"</param>
+        /// <param name="sourceId">ID định danh nguồn gốc (GetInstanceID() của tower/skill)</param>
+        /// <param name="multiplier">
+        /// </param>
+        public void AddSpeedModifier(string type, int sourceId, float multiplier)
+        {
+            if (!speedModifiers.ContainsKey(type))
+                speedModifiers[type] = new Dictionary<int, float>();
+
+            speedModifiers[type][sourceId] = multiplier;
+            RecalculateSpeed();
+        }
+
+        /// <summary>Gỡ bỏ speed modifier của một nguồn cụ thể.</summary>
+        public void RemoveSpeedModifier(string type, int sourceId)
+        {
+            if (!speedModifiers.TryGetValue(type, out var bucket)) return;
+
+            bucket.Remove(sourceId);
+            RecalculateSpeed();
+        }
+
+        /// <summary>Gỡ bỏ toàn bộ modifier của một loại (VD: hết hiệu ứng slow của một tower bị phá hủy).</summary>
+        public void RemoveAllModifiersOfType(string type)
+        {
+            if (!speedModifiers.ContainsKey(type)) return;
+
+            speedModifiers.Remove(type);
+            RecalculateSpeed();
+        }
+
+        /// <summary>Gỡ toàn bộ modifier, phục hồi tốc độ gốc.</summary>
+        public void ClearAllModifiers()
+        {
+            speedModifiers.Clear();
+            RecalculateSpeed();
+        }
+
+        // ===========================
+        // SPEED CALCULATION
+        // ===========================
+
+        /// <summary>
+        /// Tính lại tốc độ theo thứ tự ưu tiên:
+        ///   1. Freeze  → moveSpeed = 0, dừng toàn bộ
+        ///   2. Slow    → chỉ lấy multiplier NHỎ NHẤT (hiệu ứng mạnh nhất thắng)
+        ///   3. SpeedBuff → chỉ lấy multiplier LỚN NHẤT (hiệu ứng mạnh nhất thắng)
+        /// </summary>
+        private void RecalculateSpeed()
+        {
+            // --- Freeze: ưu tiên tuyệt đối ---
+            if (speedModifiers.TryGetValue(ModifierFreeze, out var freezeBucket)
+                && freezeBucket.Count > 0)
+            {
+                moveSpeed = 0f;
+                return;
+            }
+
+            moveSpeed = baseMoveSpeed;
+
+            // --- Slow: lấy multiplier nhỏ nhất ---
+            if (speedModifiers.TryGetValue(ModifierSlow, out var slowBucket)
+                && slowBucket.Count > 0)
+            {
+                float minMultiplier = 1f;
+                foreach (float mult in slowBucket.Values)
+                {
+                    if (mult < minMultiplier) minMultiplier = mult;
+                }
+                moveSpeed *= minMultiplier;
+            }
+
+            // --- SpeedBuff: lấy multiplier lớn nhất ---
+            if (speedModifiers.TryGetValue(ModifierBuff, out var buffBucket)
+                && buffBucket.Count > 0)
+            {
+                float maxMultiplier = 1f;
+                foreach (float mult in buffBucket.Values)
+                {
+                    if (mult > maxMultiplier) maxMultiplier = mult;
+                }
+                moveSpeed *= maxMultiplier;
+            }
+
+            // Sàn tốc độ: không để enemy kẹt cứng do float precision (chỉ áp dụng khi không Freeze)
+            if (moveSpeed < MinimumSpeed) moveSpeed = MinimumSpeed;
+        }
+
+        // ===========================
+        // GIZMOS
+        // ===========================
+#if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
             if (currentPath == null || currentPath.Length < 2) return;
 
-            // Vẽ toàn bộ path (xám)
+            // Toàn bộ path (xám)
             Gizmos.color = Color.gray;
             for (int i = 0; i < currentPath.Length - 1; i++)
             {
-                Vector2 from = currentPath.GetWaypoint(i);
-                Vector2 to = currentPath.GetWaypoint(i + 1);
-                Gizmos.DrawLine((Vector3)from, (Vector3)to);
+                Gizmos.DrawLine((Vector3)currentPath.GetWaypoint(i),
+                                (Vector3)currentPath.GetWaypoint(i + 1));
             }
 
-            // Vẽ waypoint hiện tại (vàng)
+            // Waypoint đích hiện tại (vàng) + đường dẫn từ enemy (xanh lá)
             if (isInitialized && currentWaypointIndex < currentPath.Length)
             {
-                Gizmos.color = Color.yellow;
-                Vector2 currentTarget = currentPath.GetWaypoint(currentWaypointIndex);
-                Gizmos.DrawWireSphere((Vector3)currentTarget, 0.2f);
+                Vector3 currentTarget = (Vector3)currentPath.GetWaypoint(currentWaypointIndex);
 
-                // Đường từ enemy đến waypoint hiện tại (xanh)
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(currentTarget, 0.2f);
+
                 Gizmos.color = Color.green;
-                Gizmos.DrawLine(transform.position, (Vector3)currentTarget);
+                Gizmos.DrawLine(transform.position, currentTarget);
             }
 
-            // Vẽ các waypoint (chấm tròn)
+            // Tất cả waypoints: đã qua = cyan, chưa qua = đỏ
             for (int i = 0; i < currentPath.Length; i++)
             {
-                // Waypoint đã qua = xanh dương, chưa qua = đỏ
                 Gizmos.color = i < currentWaypointIndex ? Color.cyan : Color.red;
-                Gizmos.DrawSphere((Vector3)currentPath.GetWaypoint(i), 0.15f);
+                Gizmos.DrawSphere((Vector3)currentPath.GetWaypoint(i), 0.12f);
             }
+
+            // Hiển thị ProgressRatio trên Scene view
+            UnityEditor.Handles.Label(
+                transform.position + Vector3.up * 0.5f,
+                $"Progress: {ProgressRatio:P0}\nSpeed: {moveSpeed:F2}");
         }
+#endif
     }
 }
