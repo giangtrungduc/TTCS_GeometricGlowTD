@@ -75,29 +75,29 @@ namespace TowerDefense.StatusEffects
 
         private void Update()
         {
-            if (activeEffects.Count == 0) return;
-
-            pendingRemoval.Clear();
-
-            for (int i = 0; i < activeEffects.Count; i++)
+            if(activeEffects.Count > 0)
             {
-                bool stillActive = activeEffects[i].Tick(this, Time.deltaTime);
-                if (!stillActive)
+                pendingRemoval.Clear();
+
+                for (int i = 0; i < activeEffects.Count; i++)
                 {
-                    pendingRemoval.Add(activeEffects[i]);
-                    colorDirty = true;
+                    bool stillActive = activeEffects[i].Tick(this, Time.deltaTime);
+                    if (!stillActive)
+                    {
+                        pendingRemoval.Add(activeEffects[i]);
+                        colorDirty = true;
+                    }
+                }
+
+                if (pendingRemoval.Count > 0)
+                {
+                    for (int i = 0; i < pendingRemoval.Count; i++)
+                    {
+                        activeEffects.Remove(pendingRemoval[i]);
+                    }
                 }
             }
 
-            if (pendingRemoval.Count > 0)
-            {
-                for (int i = 0; i < pendingRemoval.Count; i++)
-                {
-                    activeEffects.Remove(pendingRemoval[i]);
-                }
-            }
-
-            // Chỉ gọi khi cần — tránh set SpriteRenderer.color vô nghĩa mỗi frame
             if (colorDirty)
             {
                 UpdateVisualTint();
@@ -132,14 +132,15 @@ namespace TowerDefense.StatusEffects
         }
 
         /// <summary>Xóa tất cả effect có EffectID tương ứng.</summary>
-        public void RemoveEffect(string effectID)
+        public void RemoveEffect(StatusEffect effectInstance)
         {
-            for (int i = activeEffects.Count - 1; i >= 0; i--)
-            {
-                if (activeEffects[i].EffectID != effectID) continue;
+            if (effectInstance == null) return;
 
-                activeEffects[i].Remove(this);
-                activeEffects.RemoveAt(i);
+            if (activeEffects.Contains(effectInstance))
+            {
+                effectInstance.Remove(this);
+                activeEffects.Remove(effectInstance);
+
                 colorDirty = true;
             }
         }

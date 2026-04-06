@@ -15,7 +15,7 @@ namespace TowerDefense.Core
         [SerializeField] private int startingLives = 20;
 
         [Tooltip("Số gold bắt đầu")]
-        [SerializeField] private int startingGold = 100;
+        [SerializeField] private int startingGold = 200;
 
         // Trạng thái hiện tại của Game
         public GameState CurrentState { get; private set; } = GameState.Prepare;

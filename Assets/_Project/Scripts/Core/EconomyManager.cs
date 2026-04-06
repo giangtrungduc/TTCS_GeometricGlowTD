@@ -90,14 +90,20 @@ namespace TowerDefense.Core
         // ============================
         private void HandleEnemyDied(GameObject enemy)
         {
-            // TODO 
-            int reward = 10;
-            AddGold(reward);
+            var enemyBase = enemy.GetComponent<TowerDefense.Enemies.EnemyBase>();
+            if (enemyBase != null && enemyBase.Data != null)
+            {
+                AddGold(enemyBase.Data.goldReward);
+            }
         }
         private void HandleEnemyReachedEnd(GameObject enemy)
         {
-            // TODO
+            var enemyBase = enemy.GetComponent<TowerDefense.Enemies.EnemyBase>();
             int cost = 1;
+            if (enemyBase != null && enemyBase.Data != null)
+            {
+                cost = enemyBase.Data.livesCost;
+            }
             LoseLife(cost);
         }
     }

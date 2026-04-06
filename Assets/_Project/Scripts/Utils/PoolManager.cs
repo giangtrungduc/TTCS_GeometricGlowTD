@@ -1,13 +1,16 @@
 ﻿using System.Collections.Generic;
 using TowerDefense.Core;
-using UnityEditor;
 using UnityEngine;
 
 namespace TowerDefense.Utils
 {
     public class PoolManager : ManagerBase<PoolManager>
     {
-        [Header("Pool Settings")]
+        // ===========================
+        // CẤU HÌNH
+        // ===========================
+
+        [Header("Pool Pre-warm Settings")]
 
         [Tooltip("Số enemy tạo sẵn mỗi loại khi bắt đầu")]
         [SerializeField] private int enemyPreWarmCount = 10;
@@ -18,6 +21,10 @@ namespace TowerDefense.Utils
         [Tooltip("Số particle tạo sẵn mỗi loại khi bắt đầu")]
         [SerializeField] private int particlePreWarmCount = 10;
 
+        // ===========================
+        // STATE
+        // ===========================
+
         private Transform enemyContainer;
         private Transform projectileContainer;
         private Transform particleContainer;
@@ -26,112 +33,96 @@ namespace TowerDefense.Utils
         private Dictionary<int, ObjectPool<Component>> projectilePools;
         private Dictionary<int, ObjectPool<Component>> particlePools;
 
+        // ===========================
+        // INIT
+        // ===========================
+
         protected override void OnAwake()
         {
-            // Tạo containers trong Hierarchy
             enemyContainer = CreateContainer("--- ENEMY POOL ---");
             projectileContainer = CreateContainer("--- PROJECTILE POOL ---");
             particleContainer = CreateContainer("--- PARTICLE POOL ---");
 
-            // Khởi tạo dictionaries
             enemyPools = new Dictionary<int, ObjectPool<Component>>();
             projectilePools = new Dictionary<int, ObjectPool<Component>>();
             particlePools = new Dictionary<int, ObjectPool<Component>>();
         }
 
-        // ============================
+        // ===========================
         // ENEMY POOL
-        // ============================
+        // ===========================
 
-        // Lấy 1 enemy từ pool.
         public Component GetEnemy(Component prefab, Vector3 pos)
         {
-            ObjectPool<Component> pool = GetOrCreatePool(prefab, enemyPools, enemyContainer, enemyPreWarmCount);
-
-            Component enemy = pool.Get(pos);
-            return enemy;
+            var pool = GetOrCreatePool(prefab, enemyPools, enemyContainer, enemyPreWarmCount);
+            if (pool == null) return null;
+            return pool.Get(pos);
         }
 
-        // Lấy enemy và cast về type cụ thể.
-        public T GetEnemy<T>(T prefab, Vector3 pos) where T : Component
-        {
-            Component enemy = GetEnemy(prefab as Component, pos);
-            return enemy as T;
-        }
+        public T GetEnemy<T>(T prefab, Vector3 pos) where T : Component => GetEnemy(prefab as Component, pos) as T;
 
-        // Trả enemy về pool.
         public void ReturnEnemy(Component enemy)
         {
             if (enemy == null) return;
-            ReturnToPool(enemy, enemyPools);
+            ReturnToCorrectPool(enemy, enemyPools, "Enemy");
         }
 
-        // ============================
+        // ===========================
         // PROJECTILE POOL
-        // ============================
+        // ===========================
 
-        // Lấy 1 projectile từ pool.
-        public Component GetProjectile(Component prefab, Vector3 position)
+        public Component GetProjectile(Component prefab, Vector3 pos)
         {
-            ObjectPool<Component> pool = GetOrCreatePool(prefab, projectilePools, projectileContainer, projectilePreWarmCount);
-            Component projectile = pool.Get(position);
-            return projectile;
+            var pool = GetOrCreatePool(prefab, projectilePools, projectileContainer, projectilePreWarmCount);
+            if (pool == null) return null;
+            return pool.Get(pos);
         }
 
-        // Lấy projectile và cast về type cụ thể.
-        public T GetProjectile<T>(T prefab, Vector3 position) where T : Component
-        {
-            Component proj = GetProjectile(prefab as Component, position);
-            return proj as T;
-        }
+        public T GetProjectile<T>(T prefab, Vector3 pos) where T : Component => GetProjectile(prefab as Component, pos) as T;
 
-        // Trả projectile về pool.
         public void ReturnProjectile(Component projectile)
         {
             if (projectile == null) return;
-            ReturnToPool(projectile, projectilePools);
+            ReturnToCorrectPool(projectile, projectilePools, "Projectile");
         }
 
-        // ============================
+        // ===========================
         // PARTICLE POOL
-        // ============================
+        // ===========================
 
-        // Lấy 1 particle effect từ pool.
-        public Component GetParticle(Component prefab, Vector3 position)
+        public Component GetParticle(Component prefab, Vector3 pos)
         {
-            ObjectPool<Component> pool = GetOrCreatePool(prefab, particlePools, particleContainer, particlePreWarmCount);
-
-            Component particle = pool.Get(position);
-            return particle;
+            var pool = GetOrCreatePool(prefab, particlePools, particleContainer, particlePreWarmCount);
+            if (pool == null) return null;
+            return pool.Get(pos);
         }
 
-        // Trả particle về pool.
         public void ReturnParticle(Component particle)
         {
             if (particle == null) return;
-            ReturnToPool(particle, particlePools);
+            ReturnToCorrectPool(particle, particlePools, "Particle");
         }
 
-
-        // ============================
+        // ===========================
         // CLEANUP
-        // ============================
+        // ===========================
 
-        // Trả TẤT CẢ objects về pool. Gọi khi restart level.
+        /// <summary>Trả tất cả active objects về pool. Dùng khi restart level.</summary>
         public void ReturnAllToPool()
         {
-            ReturnAllInDict(enemyPools, "Enemy");
-            ReturnAllInDict(projectilePools, "Projectile");
-            ReturnAllInDict(particlePools, "Particle");
+            ReturnAllInDict(enemyPools);
+            ReturnAllInDict(projectilePools);
+            ReturnAllInDict(particlePools);
         }
-        // Huỷ tất cả pool và objects. Gọi khi đổi scene.
+
+        /// <summary>Destroy tất cả objects và clear pool. Dùng khi đổi scene.</summary>
         public void ClearAllPools()
         {
             ClearDict(enemyPools, "Enemy");
             ClearDict(projectilePools, "Projectile");
             ClearDict(particlePools, "Particle");
         }
-        // In trạng thái tất cả pools.
+
         public void LogPoolStatus()
         {
             Debug.Log("=== POOL STATUS ===");
@@ -141,63 +132,72 @@ namespace TowerDefense.Utils
             Debug.Log("===================");
         }
 
-        // ============================
-        // PRIVATE HELPERS
-        // ============================
+        protected override void OnDestroy()
+        {
+            ClearAllPools();
+            base.OnDestroy();
+        }
 
-        // Lấy pool cho prefab, hoặc tạo mới nếu chưa có.
+        // ===========================
+        // PRIVATE HELPERS
+        // ===========================
+
         private ObjectPool<Component> GetOrCreatePool(Component prefab, Dictionary<int, ObjectPool<Component>> dict, Transform container, int preWarmCount)
         {
-            if(prefab == null)
+            if (prefab == null)
             {
                 Debug.LogError("[PoolManager] Prefab is null!");
                 return null;
             }
+
             int prefabId = prefab.gameObject.GetInstanceID();
-            if (!dict.ContainsKey(prefabId))
+
+            if (!dict.TryGetValue(prefabId, out var pool))
             {
-                Transform subContainer = CreateContainer($"Pool_{prefab.name}", container);
-
-                ObjectPool<Component> newPool = new ObjectPool<Component>(prefab, subContainer, preWarmCount);
-
-                dict.Add(prefabId, newPool);
+                Transform sub = CreateContainer($"Pool_{prefab.name}", container);
+                pool = new ObjectPool<Component>(prefab, sub, preWarmCount);
+                dict.Add(prefabId, pool);
             }
-            return dict[prefabId];
+
+            return pool;
         }
 
-        // Trả object về đúng pool dựa trên tên prefab gốc.
-        private void ReturnToPool(Component obj, Dictionary<int, ObjectPool<Component>> dict)
+        /// <summary>
+        /// Tìm đúng pool theo PrefabId được set bởi ObjectPool.CreateNewObject().
+        /// </summary>
+        private void ReturnToCorrectPool(Component obj, Dictionary<int, ObjectPool<Component>> dict, string category)
         {
-            // Tìm pool phù hợp
-            foreach(var pool in dict.Values)
+            if (!obj.TryGetComponent(out PooledObject pooledObj))
             {
-                pool.Return(obj);
+                Debug.LogWarning($"[PoolManager] {obj.name} không có PooledObject component. Fallback SetActive(false).");
+                obj.gameObject.SetActive(false);
                 return;
             }
-            obj.gameObject.SetActive(false);
-        }
-        private Transform CreateContainer(string name, Transform containerParent = null)
-        {
-            GameObject container = new GameObject(name);
 
-            if (containerParent != null)
+            if (dict.TryGetValue(pooledObj.PrefabId, out var pool))
             {
-                container.transform.SetParent(containerParent);
+                pool.Return(obj);
             }
             else
             {
-                container.transform.SetParent(transform);
+                Debug.LogWarning($"[PoolManager] Không tìm thấy pool [{category}] cho PrefabId={pooledObj.PrefabId} ({obj.name}). Fallback SetActive(false).");
+                obj.gameObject.SetActive(false);
             }
-
-            return container.transform;
         }
-        private void ReturnAllInDict(Dictionary<int, ObjectPool<Component>> dict, string category)
+
+        private Transform CreateContainer(string name, Transform parent = null)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent != null ? parent : transform);
+            return go.transform;
+        }
+
+        private void ReturnAllInDict(Dictionary<int, ObjectPool<Component>> dict)
         {
             foreach (var pool in dict.Values)
             {
                 pool.ReturnAll();
             }
-            Debug.Log($"[PoolManager] ReturnAll: {category} pools");
         }
 
         private void ClearDict(Dictionary<int, ObjectPool<Component>> dict, string category)
@@ -214,14 +214,8 @@ namespace TowerDefense.Utils
         {
             foreach (var pool in dict.Values)
             {
-                Debug.Log($"    {pool}");
+                Debug.Log($"  [{category}] {pool}");
             }
-        }
-
-        protected override void OnDestroy()
-        {
-            ClearAllPools();
-            base.OnDestroy();
         }
     }
 }

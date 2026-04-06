@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using TowerDefense.Enemies;
+using UnityEngine;
 
 namespace TowerDefense.Projectiles
 {
@@ -66,14 +67,18 @@ namespace TowerDefense.Projectiles
 
         protected override void OnHit(GameObject hitTarget, float hitDamage)
         {
-            // TODO (Ngày 15): Gây sát thương thực tế
-            // if (hitTarget.TryGetComponent(out IDamageable damageable))
-            // {
-            //     damageable.TakeDamage(hitDamage);
-            // }
+            IDamageable damageable = hitTarget.GetComponent<IDamageable>();
 
-            // Tạm thời log ra Console
-            Debug.Log($"<color=orange>[BulletProjectile]</color> Bắn trúng <b>{hitTarget.name}</b>, gây {hitDamage} sát thương!");
+            if (damageable != null)
+            {
+                damageable.TakeDamage(hitDamage);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[BulletProjectile] Hit '{hitTarget.name}' but no IDebuffable found!"
+                );
+            }
         }
     }
 }

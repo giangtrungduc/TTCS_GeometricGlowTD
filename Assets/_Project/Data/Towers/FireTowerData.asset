@@ -17,7 +17,7 @@ MonoBehaviour:
     khi gi\u1EEF c\xF9ng m\u1EE5c ti\xEAu."
   icon: {fileID: 0}
   themeColor: {r: 0.94716984, g: 0.27469775, b: 0.062548816, a: 1}
-  towerPrefab: {fileID: 0}
+  towerPrefab: {fileID: 2275691417272160621, guid: 7ff863d1c2dab9d46b5d4d257e1e6a13, type: 3}
   levels:
   - damage: 4
     attackCooldown: 1

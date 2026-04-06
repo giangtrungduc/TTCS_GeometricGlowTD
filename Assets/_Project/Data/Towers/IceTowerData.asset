@@ -17,7 +17,7 @@ MonoBehaviour:
     \r\nH\u1ED7 tr\u1EE3 tuy\u1EC7t v\u1EDDi cho tower kh\xE1c."
   icon: {fileID: 0}
   themeColor: {r: 0.12941177, g: 0.5882353, b: 0.9529412, a: 1}
-  towerPrefab: {fileID: 0}
+  towerPrefab: {fileID: 5148179744533788520, guid: ff4b02681328bbe4c840b9c7ce9e571d, type: 3}
   levels:
   - damage: 2
     attackCooldown: 1
@@ -26,7 +26,7 @@ MonoBehaviour:
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
-    slowPercent: 0.2
+    slowPercent: 0.8
     freezeChance: 0
     freezeDuration: 0
     blastRadius: 0
@@ -50,8 +50,8 @@ MonoBehaviour:
     rampAmount: 0
     rampInterval: 0
     maxDamage: 0
-    slowPercent: 0.4
-    freezeChance: 0.4
+    slowPercent: 0.6
+    freezeChance: 0.8
     freezeDuration: 2
     blastRadius: 0
     towerSprite: {fileID: 0}

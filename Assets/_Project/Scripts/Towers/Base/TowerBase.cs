@@ -105,6 +105,8 @@ namespace TowerDefense.Towers
         /// <summary>Gọi sau khi upgrade thành công.</summary>
         protected virtual void OnUpgraded() { }
 
+        protected virtual void OnDisable() { }
+
         // ============================
         // PUBLIC METHODS
         // ============================

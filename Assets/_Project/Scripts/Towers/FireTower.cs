@@ -6,8 +6,9 @@
 // ============================================================
 
 using System.Collections;
-using UnityEngine;
 using TowerDefense.Core;
+using TowerDefense.Enemies;
+using UnityEngine;
 
 namespace TowerDefense.Towers
 {
@@ -215,7 +216,12 @@ namespace TowerDefense.Towers
 
         private void ApplyDamage(GameObject target, float damage)
         {
-            // TODO Ngày 15: Gọi EnemyBase.TakeDamage()
+            IDamageable damageable = target.GetComponent<IDamageable>();
+
+            if (damageable != null)
+            {
+                damageable.TakeDamage(damage);
+            }
             Debug.Log($"<color=red>[FireTower]</color> Đốt '{target.name}' - {damage:F1} DMG (Ramp: +{((damage / CurrentStats.damage - 1f) * 100):F0}%)");
         }
 
@@ -261,7 +267,7 @@ namespace TowerDefense.Towers
         // CLEANUP
         // ============================
 
-        private void OnDisable()
+        protected override void OnDisable()
         {
             if (lineRenderer != null) lineRenderer.enabled = false;
             

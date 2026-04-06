@@ -18,7 +18,7 @@ MonoBehaviour:
     c\u1EE5m."
   icon: {fileID: 0}
   themeColor: {r: 1, g: 0.8940652, b: 0.027450979, a: 1}
-  towerPrefab: {fileID: 0}
+  towerPrefab: {fileID: 8219312481344589695, guid: 2120124c0d86d4d45b8708775c19d7d1, type: 3}
   levels:
   - damage: 25
     attackCooldown: 1.5

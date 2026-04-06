@@ -1,30 +1,36 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
+using TowerDefense.Utils;
 
 namespace TowerDefense.Projectiles
 {
+    /// <summary>
+    /// Base class cho tất cả projectile.
+    /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
-    public abstract class ProjectileBase : MonoBehaviour
+    public abstract class ProjectileBase : MonoBehaviour, IPoolable
     {
-        // ============================
+        // ===========================
         // CẤU HÌNH
-        // ============================
+        // ===========================
 
         [Header("Projectile Settings")]
+
         [Tooltip("Tốc độ bay (units/s)")]
         [SerializeField] protected float moveSpeed = 10f;
 
-        [Tooltip("Khoảng cách va chạm")]
+        [Tooltip("Khoảng cách để tính va chạm với target (world units)")]
         [SerializeField] protected float hitDistance = 0.15f;
 
-        [Tooltip("Tự huỷ sau X giây (chống bug đạn bay mãi)")]
+        [Tooltip("Tự huỷ sau X giây — chống bug đạn bay mãi không trúng")]
         [SerializeField] protected float maxLifetime = 5f;
 
         [Tooltip("Xoay đầu đạn theo hướng bay")]
         [SerializeField] protected bool rotateTowardsTarget = true;
 
-        // ============================
+        // ===========================
         // STATE
-        // ============================
+        // ===========================
 
         protected GameObject target;
         protected float damage;
@@ -33,17 +39,44 @@ namespace TowerDefense.Projectiles
         protected Vector3 lastKnownTargetPos;
         protected SpriteRenderer spriteRenderer;
 
-        // ============================
+        private Action _returnCallback;
+
+        // ===========================
         // PROPERTIES
-        // ============================
+        // ===========================
 
         public GameObject Target => target;
         public float Damage => damage;
         public bool IsActive => isLaunched;
 
-        // ============================
+        // ===========================
+        // IPOOLABLE IMPLEMENTATION
+        // ===========================
+
+        /// <summary>
+        /// Được ObjectPool.Get() gọi để inject callback trả về đúng pool.
+        /// Tower không cần gọi method này — ObjectPool tự xử lý.
+        /// </summary>
+        public void SetReturnCallback(Action returnCallback)
+        {
+            _returnCallback = returnCallback;
+        }
+
+        /// <summary>
+        /// Gọi sau SetActive(true) và position đã đúng.
+        /// Override để reset visual, particle, animation.
+        /// </summary>
+        public virtual void OnGetFromPool() { }
+
+        /// <summary>
+        /// Gọi trước SetActive(false).
+        /// Override để dọn dẹp trail, particle, unsubscribe event.
+        /// </summary>
+        public virtual void OnReturnToPool() { }
+
+        // ===========================
         // UNITY LIFECYCLE
-        // ============================
+        // ===========================
 
         protected virtual void Awake()
         {
@@ -77,7 +110,7 @@ namespace TowerDefense.Projectiles
                 return;
             }
 
-            // 2. Kiểm tra target hợp lệ
+            // 2. Kiểm tra target còn hợp lệ
             if (target == null || !target.activeInHierarchy)
             {
                 OnTargetLost();
@@ -90,19 +123,23 @@ namespace TowerDefense.Projectiles
             MoveTowardsTarget();
 
             // 4. Kiểm tra va chạm
-            if (Vector2.Distance(transform.position, lastKnownTargetPos) <= hitDistance)
+            if ((Vector2)transform.position == (Vector2)lastKnownTargetPos || Vector2.Distance(transform.position, lastKnownTargetPos) <= hitDistance)
             {
                 HandleHit();
+                return;
             }
 
             OnProjectileUpdate();
         }
 
-        // ============================
-        // PUBLIC METHODS
-        // ============================
+        // ===========================
+        // PUBLIC API
+        // ===========================
 
-        /// <summary>Khởi động đạn.</summary>
+        /// <summary>
+        /// Khởi động đạn hướng về target.
+        /// Gọi SAU khi đã lấy từ pool và set các thông số cần thiết.
+        /// </summary>
         public virtual void Launch(GameObject newTarget, float newDamage)
         {
             if (newTarget == null)
@@ -117,31 +154,38 @@ namespace TowerDefense.Projectiles
             isLaunched = true;
             lastKnownTargetPos = target.transform.position;
 
-            if (rotateTowardsTarget) RotateTowards(lastKnownTargetPos);
+            if (rotateTowardsTarget)
+            {
+                RotateTowards(lastKnownTargetPos);
 
+            }
             OnLaunched();
         }
 
+        /// <summary>Launch với custom speed (override moveSpeed cho lần bắn này).</summary>
         public void Launch(GameObject newTarget, float newDamage, float customSpeed)
         {
             moveSpeed = customSpeed;
             Launch(newTarget, newDamage);
         }
 
-        // ============================
-        // ABSTRACT & VIRTUAL
-        // ============================
+        // ===========================
+        // ABSTRACT & VIRTUAL HOOKS
+        // ===========================
 
-        /// <summary>Logic khi chạm mục tiêu (Class con tự định nghĩa).</summary>
+        /// <summary>Xử lý logic khi chạm mục tiêu. Bắt buộc override.</summary>
         protected abstract void OnHit(GameObject hitTarget, float hitDamage);
 
-        /// <summary>Gọi ngay sau Launch(). Dùng để init visual, trail...</summary>
+        /// <summary>Gọi ngay sau Launch(). Dùng để khởi tạo visual, trail, particle.</summary>
         protected virtual void OnLaunched() { }
 
-        /// <summary>Gọi cuối hàm Update() nếu đạn đang bay.</summary>
+        /// <summary>Gọi cuối Update() mỗi frame khi đạn đang bay.</summary>
         protected virtual void OnProjectileUpdate() { }
 
-        /// <summary>Xử lý khi mục tiêu chết trước khi đạn tới.</summary>
+        /// <summary>
+        /// Gọi khi target chết/mất trước khi đạn tới.
+        /// Mặc định: tiếp tục bay đến lastKnownTargetPos rồi return pool.
+        /// </summary>
         protected virtual void OnTargetLost()
         {
             if (Vector2.Distance(transform.position, lastKnownTargetPos) <= hitDistance)
@@ -150,24 +194,36 @@ namespace TowerDefense.Projectiles
                 return;
             }
 
-            // Tiếp tục bay đến vị trí cuối cùng
-            transform.position = Vector2.MoveTowards(transform.position, lastKnownTargetPos, moveSpeed * Time.deltaTime);
+            // Tiếp tục bay về vị trí cuối cùng đã biết
+            transform.position = Vector2.MoveTowards(
+                transform.position, lastKnownTargetPos, moveSpeed * Time.deltaTime
+            );
+
+            if (rotateTowardsTarget)
+            {
+                RotateTowards(lastKnownTargetPos);
+            }
         }
 
         protected virtual void OnTimeout()
         {
-            Debug.LogWarning($"[ProjectileBase] '{gameObject.name}' timed out. Vượt quá {maxLifetime}s.");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning($"[ProjectileBase] '{name}' timeout sau {maxLifetime}s.");
+#endif
         }
 
-        // ============================
-        // PRIVATE
-        // ============================
+        // ===========================
+        // PRIVATE HELPERS
+        // ===========================
 
         private void MoveTowardsTarget()
         {
             transform.position = Vector2.MoveTowards(transform.position, lastKnownTargetPos, moveSpeed * Time.deltaTime);
 
-            if (rotateTowardsTarget) RotateTowards(lastKnownTargetPos);
+            if (rotateTowardsTarget)
+            {
+                RotateTowards(lastKnownTargetPos);
+            }
         }
 
         private void RotateTowards(Vector3 targetPos)
@@ -185,20 +241,42 @@ namespace TowerDefense.Projectiles
             {
                 OnHit(target, damage);
             }
+
             ReturnToPool();
         }
 
+        // ===========================
+        // POOL RETURN
+        // ===========================
+
+        /// <summary>
+        /// Trả đạn về pool đúng cách.
+        /// Nếu có _returnCallback (inject bởi ObjectPool): gọi pool.Return(this) → push vào stack.
+        /// Nếu không có (fallback): chỉ SetActive(false).
+        /// </summary>
         protected void ReturnToPool()
         {
             isLaunched = false;
             target = null;
-            gameObject.SetActive(false); // Trả về pool thông qua OnDisable
+
+            // Lấy callback ra và clear trước khi invoke — chống re-entrance
+            Action cb = _returnCallback;
+            _returnCallback = null;
+
+            if (cb != null)
+            {
+                cb.Invoke(); // → pool.Return(this) → OnReturnToPool() → SetActive(false) → Push
+            }
+            else
+            {
+                gameObject.SetActive(false); // fallback nếu không qua ObjectPool
+            }
         }
 
-        // ============================
+        // ===========================
         // GIZMOS
-        // ============================
-
+        // ===========================
+#if UNITY_EDITOR
         protected virtual void OnDrawGizmosSelected()
         {
             if (!isLaunched) return;
@@ -212,5 +290,6 @@ namespace TowerDefense.Projectiles
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, hitDistance);
         }
+#endif
     }
 }
