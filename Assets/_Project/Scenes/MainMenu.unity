@@ -153,6 +153,7 @@ Transform:
   - {fileID: 1854942715}
   - {fileID: 663649419}
   - {fileID: 642042821}
+  - {fileID: 1597973677}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &86034158
@@ -1408,6 +1409,65 @@ Transform:
   m_Children: []
   m_Father: {fileID: 79694541}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1597973676
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1597973677}
+  - component: {fileID: 1597973678}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1597973677
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1597973676}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 79694541}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1597973678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1597973676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ed3d1758f407b4cab64ed19c2bf216, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sfxEntries:
+  - type: 3
+    clip: {fileID: 8300000, guid: 0f90a958e205d4d41a502d02be919397, type: 3}
+    volumeOverride: 0.24
+  - type: 4
+    clip: {fileID: 8300000, guid: e44227b0bfe290840acbc6f724ecd0d7, type: 3}
+    volumeOverride: 0.42
+  - type: 5
+    clip: {fileID: 8300000, guid: dd57ec17e86d42a4a991e50dbfdc7fc2, type: 3}
+    volumeOverride: 0.32
+  - type: 2
+    clip: {fileID: 8300000, guid: c8cf37566d778e44b997f94e4da5587d, type: 3}
+    volumeOverride: 0.42
+  poolSize: 15
+  defaultVolume: 0.85
 --- !u!1 &1659215035
 GameObject:
   m_ObjectHideFlags: 0
