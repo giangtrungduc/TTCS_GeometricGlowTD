@@ -67,14 +67,22 @@ namespace TowerDefense.Core
             BuildLookups();
             CreateAudioSources();
             LoadVolumes();
+        }
+
+        private void OnEnable()
+        {
             SubscribeEvents();
             HandleSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            UnsubscribeEvents();
         }
 
         private void BuildLookups()

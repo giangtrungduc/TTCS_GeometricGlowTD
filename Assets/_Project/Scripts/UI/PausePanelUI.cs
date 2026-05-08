@@ -41,8 +41,6 @@ namespace TowerDefense.UI
             {
                 RefreshUI(GameState.Playing);
             }
-            GameEvents.OnGameStateChanged += HandleGameStateChanged;
-
             if (pauseButton != null)
             {
                 pauseButton.onClick.AddListener(OnPauseClicked);
@@ -75,8 +73,6 @@ namespace TowerDefense.UI
 
         void OnDestroy()
         {
-            GameEvents.OnGameStateChanged -= HandleGameStateChanged;
-
             if (pauseButton != null)
             {
                 pauseButton.onClick.RemoveListener(OnPauseClicked);
@@ -132,12 +128,28 @@ namespace TowerDefense.UI
         }
         private void OnMusicChanged(float value)
         {
-            AudioManager.Instance.SetMusicVolume(value);
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.SetMusicVolume(value);
+            }
         }
         private void OnSFXChanged(float value)
         {
-            AudioManager.Instance.SetSfxVolume(value);
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.SetSfxVolume(value);
+            }
         }
+        private void OnEnable()
+        {
+            GameEvents.OnGameStateChanged += HandleGameStateChanged;
+        }
+
+        private void OnDisable()
+        {
+            GameEvents.OnGameStateChanged -= HandleGameStateChanged;
+        }
+
         private void HandleGameStateChanged(GameState state)
         {
             RefreshUI(state);

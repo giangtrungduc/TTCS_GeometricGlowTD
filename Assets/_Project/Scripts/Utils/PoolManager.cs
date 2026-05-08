@@ -56,7 +56,9 @@ namespace TowerDefense.Utils
         {
             var pool = GetOrCreatePool(prefab, enemyPools, enemyContainer, enemyPreWarmCount);
             if (pool == null) return null;
-            return pool.Get(pos);
+            Component instance = pool.Get(pos);
+            TagPooledObject(instance, PoolType.Enemy);
+            return instance;
         }
 
         public T GetEnemy<T>(T prefab, Vector3 pos) where T : Component => GetEnemy(prefab as Component, pos) as T;
@@ -75,7 +77,9 @@ namespace TowerDefense.Utils
         {
             var pool = GetOrCreatePool(prefab, projectilePools, projectileContainer, projectilePreWarmCount);
             if (pool == null) return null;
-            return pool.Get(pos);
+            Component instance = pool.Get(pos);
+            TagPooledObject(instance, PoolType.Projectile);
+            return instance;
         }
 
         public T GetProjectile<T>(T prefab, Vector3 pos) where T : Component => GetProjectile(prefab as Component, pos) as T;
@@ -94,7 +98,9 @@ namespace TowerDefense.Utils
         {
             var pool = GetOrCreatePool(prefab, particlePools, particleContainer, particlePreWarmCount);
             if (pool == null) return null;
-            return pool.Get(pos);
+            Component instance = pool.Get(pos);
+            TagPooledObject(instance, PoolType.Particle);
+            return instance;
         }
 
         public void ReturnParticle(Component particle)
@@ -190,6 +196,14 @@ namespace TowerDefense.Utils
             var go = new GameObject(name);
             go.transform.SetParent(parent != null ? parent : transform);
             return go.transform;
+        }
+
+        private void TagPooledObject(Component instance, PoolType category)
+        {
+            if (instance != null && instance.TryGetComponent(out PooledObject pooledObject))
+            {
+                pooledObject.PoolCategory = category;
+            }
         }
 
         private void ReturnAllInDict(Dictionary<int, ObjectPool<Component>> dict)

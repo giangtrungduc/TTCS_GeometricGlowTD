@@ -14,5 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelID: 2
   levelName: Level3
+  sceneName: Level3
+  scenePath: 
   iconLevel: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}
   backgroundLevel: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}

@@ -102,6 +102,26 @@ namespace TowerDefense.Core
             StopAllRunningCoroutines();
         }
 
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            if (waveData == null)
+            {
+                Debug.LogWarning("[WaveManager] Chua gan WaveData.", this);
+            }
+
+            if (path == null)
+            {
+                Debug.LogWarning("[WaveManager] Chua gan WaypointPath.", this);
+            }
+
+            if (bossPrefab != null && bossPrefab.GetComponent<BossSkillController>() == null)
+            {
+                Debug.LogWarning("[WaveManager] Boss prefab khong co BossSkillController.", this);
+            }
+        }
+#endif
+
         // ============================
         // PUBLIC API
         // ============================

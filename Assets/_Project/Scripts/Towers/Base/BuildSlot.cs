@@ -45,6 +45,18 @@ namespace TowerDefense.Towers
         public void PlaceTower(TowerData towerData)
         {
             if (IsOccupied || towerData == null) return;
+            if (towerData.towerPrefab == null)
+            {
+                Debug.LogError($"[BuildSlot] TowerData '{towerData.name}' chua gan towerPrefab.", this);
+                return;
+            }
+
+            TowerBase prefabTower = towerData.towerPrefab.GetComponent<TowerBase>();
+            if (prefabTower == null)
+            {
+                Debug.LogError($"[BuildSlot] Tower prefab cua '{towerData.name}' khong co TowerBase.", this);
+                return;
+            }
 
             TowerLevelData level0 = towerData.GetLevel(0);
 

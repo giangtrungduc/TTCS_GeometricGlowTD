@@ -2,37 +2,63 @@ using TowerDefense.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class LevelButton : MonoBehaviour
+namespace TowerDefense.UI
 {
-    [SerializeField] private Button levelButton;
-
+    public class LevelButton : MonoBehaviour
+    {
+        [SerializeField] private Button levelButton;
         [SerializeField] private LevelData levelData;
         [SerializeField] private Image lockIcon;
-        [Tooltip("Các hình ảnh sao dùng để hiển thị số sao đạt được của level")]
         [SerializeField] private Image[] startImages;
         [SerializeField] private Sprite filledStarSprite;
         [SerializeField] private Sprite emptyStarSprite;
 
-
-    private void Start()
-    {
-        levelButton.onClick.AddListener(OnLevelButtonClicked);
-        if (!SaveManager.IsLevelUnlocked(levelData.levelID))
+        private void Start()
         {
-            lockIcon.gameObject.SetActive(true);
-            levelButton.interactable = false;
-            foreach (var starImage in startImages)
+            if (levelButton != null)
             {
-                starImage.gameObject.SetActive(false);
+                levelButton.onClick.AddListener(OnLevelButtonClicked);
+            }
+
+            RefreshState();
+        }
+
+        private void OnDestroy()
+        {
+            if (levelButton != null)
+            {
+                levelButton.onClick.RemoveListener(OnLevelButtonClicked);
             }
         }
-        else
+
+        private void RefreshState()
         {
-            lockIcon.gameObject.SetActive(false);
-            levelButton.interactable = true;
-            foreach (var starImage in startImages)
+            if (levelData == null || levelButton == null)
             {
-                starImage.gameObject.SetActive(true);
+                Debug.LogError("[LevelButton] Thieu LevelData hoac Button reference.", this);
+                return;
+            }
+
+            bool isUnlocked = SaveManager.IsLevelUnlocked(levelData.levelID);
+            bool hasValidScene = levelData.TryGetSceneIdentifier(out string sceneIdentifier)
+                && SceneLoader.CanLoadScene(sceneIdentifier);
+
+            if (lockIcon != null)
+            {
+                lockIcon.gameObject.SetActive(!isUnlocked || !hasValidScene);
+            }
+
+            levelButton.interactable = isUnlocked && hasValidScene;
+
+            bool showStars = isUnlocked;
+            for (int i = 0; i < startImages.Length; i++)
+            {
+                startImages[i].gameObject.SetActive(showStars);
+            }
+
+            if (!showStars)
+            {
+                return;
             }
 
             int stars = SaveManager.GetStars(levelData.levelID);
@@ -40,10 +66,19 @@ public class LevelButton : MonoBehaviour
             {
                 startImages[i].sprite = i < stars ? filledStarSprite : emptyStarSprite;
             }
+
+            if (!hasValidScene)
+            {
+                Debug.LogWarning($"[LevelButton] Level '{levelData.name}' chua co scene hop le trong build.", this);
+            }
         }
-    }
-    private void OnLevelButtonClicked()
-    {
-        LevelSelectUI.Instance.ShowInformationPanel(levelData);
+
+        private void OnLevelButtonClicked()
+        {
+            if (LevelSelectUI.Instance != null)
+            {
+                LevelSelectUI.Instance.ShowInformationPanel(levelData);
+            }
+        }
     }
 }

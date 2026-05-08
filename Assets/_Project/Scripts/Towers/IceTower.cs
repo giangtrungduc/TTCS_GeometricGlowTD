@@ -17,24 +17,19 @@ namespace TowerDefense.Towers
         [Header("Ice Tower")]
         [SerializeField] private AreaProjectile projectilePrefab;
 
-        private ObjectPool<AreaProjectile> projectilePool;
-
         protected override void OnTowerAwake()
         {
             if (projectilePrefab == null)
             {
                 Debug.LogError($"[IceTower] '{gameObject.name}' thiếu projectilePrefab!");
-                return;
             }
-
-            projectilePool = new ObjectPool<AreaProjectile>(projectilePrefab, transform, 5);
         }
 
         protected override void OnAttack(GameObject target, TowerLevelData stats)
         {
-            if (projectilePool == null) return;
+            if (projectilePrefab == null || PoolManager.Instance == null) return;
 
-            AreaProjectile projectile = projectilePool.Get(FirePoint.position);
+            AreaProjectile projectile = PoolManager.Instance.GetProjectile(projectilePrefab, FirePoint.position) as AreaProjectile;
             if (projectile == null) return;
 
             projectile.SetBlastRadius(stats.blastRadius);

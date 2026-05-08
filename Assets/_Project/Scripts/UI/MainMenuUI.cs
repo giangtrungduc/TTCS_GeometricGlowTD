@@ -66,7 +66,7 @@ namespace TowerDefense.UI
 
         private void OnStartButtonClicked()
         {
-            SceneManager.LoadScene("LevelSelected");
+            SceneLoader.TryLoadScene(SceneLoader.LevelSelectScene, this);
         }
         private void OnSettingsButtonClicked()
         {
@@ -82,11 +82,17 @@ namespace TowerDefense.UI
         }
         private void OnMusicChanged(float value)
         {
-            AudioManager.Instance.SetMusicVolume(value);
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.SetMusicVolume(value);
+            }
         }
         private void OnSFXChanged(float value)
         {
-            AudioManager.Instance.SetSfxVolume(value);
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.SetSfxVolume(value);
+            }
         }
     }
 }

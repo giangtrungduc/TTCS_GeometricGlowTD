@@ -1,59 +1,122 @@
 using TMPro;
 using TowerDefense.Core;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class LevelSelectUI : ManagerBase<LevelSelectUI>
+namespace TowerDefense.UI
 {
-    [SerializeField] private Button quitButton;
-    [SerializeField] private GameObject informationPanel;
-    [SerializeField] private Button playButton;
-    private string nameLevelToLoad;
-    [SerializeField] private Button closeInfoButton;
-    
-    [Header("Thông tin level")]
-    [SerializeField] private TextMeshProUGUI levelNameText;
-    [SerializeField] private Image iconLevelImage;
-    [SerializeField] private Image levelBackgroundImage;
-    [SerializeField] private Image[] startImages;
-    [SerializeField] private Sprite filledStarSprite;
-    [SerializeField] private Sprite emptyStarSprite;
-    private void Start()
+    public class LevelSelectUI : ManagerBase<LevelSelectUI>
     {
-        playButton.onClick.AddListener(OnPlayButtonClicked);
-        quitButton.onClick.AddListener(OnQuitButtonClicked);
-        closeInfoButton.onClick.AddListener(OnCloseInfoButtonClicked);
-        informationPanel.SetActive(false);
-    }
-    private void OnPlayButtonClicked()
-    {
-        if (!string.IsNullOrEmpty(nameLevelToLoad))
-        {
-            SceneManager.LoadScene(nameLevelToLoad);
-        }
-    }
-    private void OnQuitButtonClicked()
-    {
-        SceneManager.LoadScene("MainMenu");
-    }
-    private void OnCloseInfoButtonClicked()
-    {
-        informationPanel.SetActive(false);
-    }
+        [SerializeField] private Button quitButton;
+        [SerializeField] private GameObject informationPanel;
+        [SerializeField] private Button playButton;
+        [SerializeField] private Button closeInfoButton;
 
-    public void ShowInformationPanel(LevelData levelData)
-    {
-        levelNameText.text = levelData.levelName;
-        iconLevelImage.sprite = levelData.iconLevel;
-        levelBackgroundImage.sprite = levelData.backgroundLevel;
+        [Header("Thong tin level")]
+        [SerializeField] private TextMeshProUGUI levelNameText;
+        [SerializeField] private Image iconLevelImage;
+        [SerializeField] private Image levelBackgroundImage;
+        [SerializeField] private Image[] startImages;
+        [SerializeField] private Sprite filledStarSprite;
+        [SerializeField] private Sprite emptyStarSprite;
 
-        int stars = SaveManager.GetStars(levelData.levelID);
-        for (int i = 0; i < startImages.Length; i++)
+        private LevelData selectedLevel;
+
+        private void Start()
         {
-            startImages[i].sprite = i < stars ? filledStarSprite : emptyStarSprite;
+            if (playButton != null) playButton.onClick.AddListener(OnPlayButtonClicked);
+            if (quitButton != null) quitButton.onClick.AddListener(OnQuitButtonClicked);
+            if (closeInfoButton != null) closeInfoButton.onClick.AddListener(OnCloseInfoButtonClicked);
+
+            if (informationPanel != null)
+            {
+                informationPanel.SetActive(false);
+            }
+
+            RefreshPlayButton();
         }
-        nameLevelToLoad = levelData.levelName;
-        informationPanel.SetActive(true);
+
+        protected override void OnDestroy()
+        {
+            if (playButton != null) playButton.onClick.RemoveListener(OnPlayButtonClicked);
+            if (quitButton != null) quitButton.onClick.RemoveListener(OnQuitButtonClicked);
+            if (closeInfoButton != null) closeInfoButton.onClick.RemoveListener(OnCloseInfoButtonClicked);
+            base.OnDestroy();
+        }
+
+        private void OnPlayButtonClicked()
+        {
+            if (selectedLevel == null) return;
+            SceneLoader.TryLoadLevel(selectedLevel, this);
+        }
+
+        private void OnQuitButtonClicked()
+        {
+            SceneLoader.TryLoadScene(SceneLoader.MainMenuScene, this);
+        }
+
+        private void OnCloseInfoButtonClicked()
+        {
+            selectedLevel = null;
+            if (informationPanel != null)
+            {
+                informationPanel.SetActive(false);
+            }
+
+            RefreshPlayButton();
+        }
+
+        public void ShowInformationPanel(LevelData levelData)
+        {
+            if (levelData == null)
+            {
+                Debug.LogError("[LevelSelectUI] LevelData bi null.", this);
+                return;
+            }
+
+            selectedLevel = levelData;
+
+            if (levelNameText != null)
+            {
+                levelNameText.text = levelData.levelName;
+            }
+
+            if (iconLevelImage != null)
+            {
+                iconLevelImage.sprite = levelData.iconLevel;
+            }
+
+            if (levelBackgroundImage != null)
+            {
+                levelBackgroundImage.sprite = levelData.backgroundLevel;
+            }
+
+            int stars = SaveManager.GetStars(levelData.levelID);
+            for (int i = 0; i < startImages.Length; i++)
+            {
+                startImages[i].sprite = i < stars ? filledStarSprite : emptyStarSprite;
+            }
+
+            if (informationPanel != null)
+            {
+                informationPanel.SetActive(true);
+            }
+
+            RefreshPlayButton();
+        }
+
+        private void RefreshPlayButton()
+        {
+            if (playButton == null)
+            {
+                return;
+            }
+
+            bool canPlay = selectedLevel != null
+                && selectedLevel.TryGetSceneIdentifier(out string sceneIdentifier)
+                && SceneLoader.CanLoadScene(sceneIdentifier);
+
+            playButton.interactable = canPlay;
+        }
     }
 }

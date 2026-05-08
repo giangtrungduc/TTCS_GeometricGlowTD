@@ -98,9 +98,8 @@ namespace TowerDefense.Core
         public void RestartLevel()
         {
             Time.timeScale = 1f;
-            GameEvents.ClearAllEvents();
-
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            Scene currentScene = SceneManager.GetActiveScene();
+            SceneLoader.TryLoadScene(currentScene.path, this);
         }
 
         private void HandleWaveCompleted(int waveIndex)
@@ -127,6 +126,12 @@ namespace TowerDefense.Core
 
         private void HandleWin()
         {
+            if (currentLevelData == null)
+            {
+                Debug.LogError("[GameManager] currentLevelData bi thieu, khong the luu ket qua level.");
+                return;
+            }
+
             int currentLives = 0;
 
             if (EconomyManager.Instance != null)
@@ -142,6 +147,12 @@ namespace TowerDefense.Core
 
         private void HandleLose()
         {
+            if (currentLevelData == null)
+            {
+                Debug.LogError("[GameManager] currentLevelData bi thieu, khong the tao ket qua level.");
+                return;
+            }
+
             LevelResult result = new LevelResult(currentLevelData.levelName, 0, wavesCleared);
 
             GameEvents.RaiseLevelCompleted(result);
@@ -149,13 +160,10 @@ namespace TowerDefense.Core
         public void QuitToLevelSelect()
         {
             Time.timeScale = 1f;
-            GameEvents.ClearAllEvents();
-
-            SceneManager.LoadScene("LevelSelected");
+            SceneLoader.TryLoadScene(SceneLoader.LevelSelectScene, this);
         }
         protected override void OnDestroy()
         {
-            GameEvents.ClearAllEvents();
             base.OnDestroy();
         }
     }

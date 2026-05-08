@@ -20,12 +20,14 @@ namespace TowerDefense.Core
         {
             GameEvents.OnEnemyDied += HandleEnemyDied;
             GameEvents.OnEnemyReachedEnd += HandleEnemyReachedEnd;
+            GameEvents.OnEarlyStartBonusAwarded += HandleEarlyStartBonusAwarded;
         }
 
         private void OnDisable()
         {
             GameEvents.OnEnemyDied -= HandleEnemyDied;
             GameEvents.OnEnemyReachedEnd -= HandleEnemyReachedEnd;
+            GameEvents.OnEarlyStartBonusAwarded -= HandleEarlyStartBonusAwarded;
         }
 
         public void AddGold(int amount)
@@ -91,6 +93,11 @@ namespace TowerDefense.Core
             }
 
             LoseLife(cost);
+        }
+
+        private void HandleEarlyStartBonusAwarded(int waveIndex, int bonusAmount)
+        {
+            AddGold(bonusAmount);
         }
     }
 }

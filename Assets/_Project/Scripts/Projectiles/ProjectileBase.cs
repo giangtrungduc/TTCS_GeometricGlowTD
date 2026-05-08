@@ -327,6 +327,16 @@ namespace TowerDefense.Projectiles
                 ? transform.rotation
                 : Quaternion.identity;
 
+            if (PoolManager.Instance != null && impactVfxPrefab.TryGetComponent(out PooledObject pooledVfxPrefab))
+            {
+                Component pooledVfx = PoolManager.Instance.GetParticle(pooledVfxPrefab, position);
+                if (pooledVfx != null)
+                {
+                    pooledVfx.transform.rotation = rotation;
+                    return;
+                }
+            }
+
             GameObject vfx = Instantiate(impactVfxPrefab, position, rotation);
 
             if (impactVfxLifetime > 0f)

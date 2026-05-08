@@ -46,6 +46,7 @@ namespace TowerDefense.UI
             GameEvents.OnWaveStarted += HandleWaveStarted;
             GameEvents.OnWaveCompleted += HandleWaveCompleted;
             GameEvents.OnWaveCountdownChanged += HandleWaveCountdownChanged;
+            GameEvents.OnGameStateChanged += HandleGameStateChanged;
             if(startWaveButton != null)
             {
                 startWaveButton.onClick.AddListener(OnStartWaveButtonClicked);
@@ -60,6 +61,7 @@ namespace TowerDefense.UI
             GameEvents.OnWaveStarted -= HandleWaveStarted;
             GameEvents.OnWaveCompleted -= HandleWaveCompleted;
             GameEvents.OnWaveCountdownChanged -= HandleWaveCountdownChanged;
+            GameEvents.OnGameStateChanged -= HandleGameStateChanged;
             if(startWaveButton != null)
             {
                 startWaveButton.onClick.RemoveListener(OnStartWaveButtonClicked);
@@ -74,7 +76,7 @@ namespace TowerDefense.UI
             }
             UpdateGoldUI(EconomyManager.Instance != null ? EconomyManager.Instance.CurrentGold : 100);
             UpdateLivesUI(EconomyManager.Instance != null ? EconomyManager.Instance.CurrentLives : 20);
-            UpdateWaveUI(0);
+            UpdateWavePreview();
             RefreshStartWaveButton();
         }
 
@@ -116,6 +118,11 @@ namespace TowerDefense.UI
         }
         private void HandleWaveCountdownChanged(int waveIndex, float timeRemaining)
         {
+            UpdateWavePreview();
+            RefreshStartWaveButton();
+        }
+        private void HandleGameStateChanged(GameState state)
+        {
             RefreshStartWaveButton();
         }
         private void RefreshStartWaveButton()
@@ -123,6 +130,22 @@ namespace TowerDefense.UI
             if(startWaveButton == null || WaveManager.Instance == null || GameManager.Instance == null) return;
             bool shouldShowButton = (WaveManager.Instance.State == WaveState.Prepare) && (GameManager.Instance.CurrentState != GameState.Paused);
             startWaveButton.gameObject.SetActive(shouldShowButton);
+        }
+
+        private void UpdateWavePreview()
+        {
+            if (WaveManager.Instance == null || waveText == null)
+            {
+                return;
+            }
+
+            int displayWave = Mathf.Clamp(WaveManager.Instance.UpcomingWaveIndex + 1, 1, Mathf.Max(1, totalWaves));
+            if (WaveManager.Instance.State != WaveState.Prepare)
+            {
+                displayWave = Mathf.Clamp(currentWaveIndex, 1, Mathf.Max(1, totalWaves));
+            }
+
+            waveText.text = $"Wave {displayWave}/{totalWaves}";
         }
 
         // ============================
@@ -145,7 +168,7 @@ namespace TowerDefense.UI
                 UpdateGoldUI(EconomyManager.Instance.CurrentGold);
                 UpdateLivesUI(EconomyManager.Instance.CurrentLives);
             }
-            UpdateWaveUI(currentWaveIndex - 1);
+            UpdateWavePreview();
             RefreshStartWaveButton();
         }
     }

@@ -233,6 +233,14 @@ namespace TowerDefense.Enemies
             if (hasReachedEnd) return;
 
             hasReachedEnd = true;
+
+            EnemyBase enemy = GetComponent<EnemyBase>();
+            if (enemy != null)
+            {
+                enemy.HandleReachedEnd();
+                return;
+            }
+
             GameEvents.RaiseEnemyReachedEnd(gameObject);
             gameObject.SetActive(false);
         }

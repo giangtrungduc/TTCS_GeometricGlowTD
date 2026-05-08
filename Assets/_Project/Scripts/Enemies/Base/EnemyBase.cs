@@ -203,6 +203,15 @@ namespace TowerDefense.Enemies
             ReturnToPool();
         }
 
+        public void HandleReachedEnd()
+        {
+            if (isDead) return;
+
+            isDead = true;
+            GameEvents.RaiseEnemyReachedEnd(gameObject);
+            ReturnToPool();
+        }
+
         private void ReturnToPool()
         {
             // Lấy callback ra và clear trước khi invoke — chống re-entrance

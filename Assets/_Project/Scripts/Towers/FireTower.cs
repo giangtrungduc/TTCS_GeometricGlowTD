@@ -15,8 +15,6 @@ namespace TowerDefense.Towers
         [Header("Fire Tower")]
         [SerializeField] private SingleProjectile projectilePrefab;
 
-        private ObjectPool<SingleProjectile> projectilePool;
-
         private GameObject currentFireTarget;
         private float currentRampDamage;
         private float timeOnTarget;
@@ -28,10 +26,7 @@ namespace TowerDefense.Towers
             if (projectilePrefab == null)
             {
                 Debug.LogError($"[FireTower] '{gameObject.name}' thiếu projectilePrefab!");
-                return;
             }
-
-            projectilePool = new ObjectPool<SingleProjectile>(projectilePrefab, transform, 5);
             ResetRampDamage();
         }
 
@@ -49,7 +44,7 @@ namespace TowerDefense.Towers
 
         protected override void OnAttack(GameObject target, TowerLevelData stats)
         {
-            if (projectilePool == null) return;
+            if (projectilePrefab == null || PoolManager.Instance == null) return;
 
             if (target != currentFireTarget)
             {
@@ -57,7 +52,7 @@ namespace TowerDefense.Towers
                 ResetRampDamage();
             }
 
-            SingleProjectile projectile = projectilePool.Get(FirePoint.position);
+            SingleProjectile projectile = PoolManager.Instance.GetProjectile(projectilePrefab, FirePoint.position) as SingleProjectile;
             if (projectile == null) return;
 
             projectile.Launch(target, currentRampDamage);

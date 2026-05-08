@@ -15,24 +15,19 @@ namespace TowerDefense.Towers
         [Header("Normal Tower")]
         [SerializeField] private SingleProjectile projectilePrefab;
 
-        private ObjectPool<SingleProjectile> projectilePool;
-
         protected override void OnTowerAwake()
         {
             if (projectilePrefab == null)
             {
                 Debug.LogError($"[NormalTower] '{gameObject.name}' thiếu projectilePrefab!");
-                return;
             }
-
-            projectilePool = new ObjectPool<SingleProjectile>(projectilePrefab, transform, 5);
         }
 
         protected override void OnAttack(GameObject target, TowerLevelData stats)
         {
-            if (projectilePool == null) return;
+            if (projectilePrefab == null || PoolManager.Instance == null) return;
 
-            SingleProjectile projectile = projectilePool.Get(FirePoint.position);
+            SingleProjectile projectile = PoolManager.Instance.GetProjectile(projectilePrefab, FirePoint.position) as SingleProjectile;
             if (projectile == null) return;
 
             projectile.Launch(target, stats.damage);

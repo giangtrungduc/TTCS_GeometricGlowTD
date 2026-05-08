@@ -161,6 +161,13 @@ namespace TowerDefense.Core
             {
                 if (enemyGroups[i] == null) continue;
                 enemyGroups[i].Validate();
+
+#if UNITY_EDITOR
+                if (enemyGroups[i].enemyPrefab == null && enemyGroups[i].count > 0)
+                {
+                    Debug.LogWarning($"[WaveData] Wave '{waveName}' co group spawn count > 0 nhung thieu enemyPrefab.");
+                }
+#endif
             }
         }
     }

@@ -45,35 +45,6 @@ namespace TowerDefense.Enemies
             QueueThresholdTriggers(thresholdNormalized);
         }
 
-        public override void OnBossDamaged(float incomingDamage, float appliedDamage, float previousHp, float currentHp)
-        {
-            if (owner == null || owner.MaxHp <= 0f || summonThresholds == null || summonThresholds.Length == 0)
-            {
-                return;
-            }
-
-            float previousNormalized = previousHp / owner.MaxHp;
-            float currentNormalized = currentHp / owner.MaxHp;
-
-            while (nextThresholdIndex < summonThresholds.Length)
-            {
-                float configuredThreshold = summonThresholds[nextThresholdIndex];
-                bool crossedThreshold = previousNormalized > configuredThreshold && currentNormalized <= configuredThreshold;
-                if (!crossedThreshold)
-                {
-                    break;
-                }
-
-                pendingTriggerCount++;
-                nextThresholdIndex++;
-            }
-
-            if (pendingTriggerCount > 0)
-            {
-                controller?.TryActivateAbility(this);
-            }
-        }
-
         public override bool CanTrigger()
         {
             if (!base.CanTrigger())

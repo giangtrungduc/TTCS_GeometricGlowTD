@@ -14,5 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelID: 0
   levelName: Level1
+  sceneName: Level1
+  scenePath: Assets/_Project/Scenes/Levels/Level1.unity
   iconLevel: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}
   backgroundLevel: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}
+  sceneAsset: {fileID: 102900000, guid: 67365498be959e9449aa3744707ff93e, type: 3}

@@ -19,8 +19,6 @@ namespace TowerDefense.Towers
         [Tooltip("Hệ số sát thương khi proc. Theo thiết kế là x3.")]
         [SerializeField] private float tripleDamageMultiplier = 3f;
 
-        private ObjectPool<AreaProjectile> projectilePool;
-
         private int totalShots;
         private int tripleShots;
 
@@ -33,15 +31,12 @@ namespace TowerDefense.Towers
             if (projectilePrefab == null)
             {
                 Debug.LogError($"[LightTower] '{gameObject.name}' thiếu projectilePrefab!");
-                return;
             }
-
-            projectilePool = new ObjectPool<AreaProjectile>(projectilePrefab, transform, 5);
         }
 
         protected override void OnAttack(GameObject target, TowerLevelData stats)
         {
-            if (projectilePool == null) return;
+            if (projectilePrefab == null || PoolManager.Instance == null) return;
 
             totalShots++;
 
@@ -54,7 +49,7 @@ namespace TowerDefense.Towers
                 tripleShots++;
             }
 
-            AreaProjectile projectile = projectilePool.Get(FirePoint.position);
+            AreaProjectile projectile = PoolManager.Instance.GetProjectile(projectilePrefab, FirePoint.position) as AreaProjectile;
             if (projectile == null) return;
 
             projectile.SetBlastRadius(stats.blastRadius);
