@@ -11,7 +11,7 @@ namespace TowerDefense.Towers
 
         [Header("- Combat -")]
 
-        [Tooltip("Sát thương mỗi lần tấn công (hoặc mỗi tick cho Fire)")]
+        [Tooltip("Sát thương mỗi lần tấn công")]
         [Min(0f)]
         public float damage;
 
@@ -19,82 +19,75 @@ namespace TowerDefense.Towers
         [Min(0.05f)]
         public float attackCooldown;
 
-        [Tooltip("Tầm bắn (world units). Dùng cho Physics2D.OverlapCircle")]
+        [Tooltip("Tầm bắn của tháp")]
         [Min(0.5f)]
         public float range;
 
         // ============================
-        // ECONOMY — Chi phí
+        // ECONOMY
         // ============================
 
-        [Tooltip("Chi phí mua (Cấp 1) hoặc nâng cấp (Cấp 2, 3)")]
+        [Tooltip("Chi phí mua hoặc nâng cấp")]
         [Min(0)]
         public int cost;
 
         // ============================
-        // RAMP — Chỉ Fire Tower dùng
+        // FIRE TOWER
         // ============================
 
-        [Header("— Ramp (Fire Tower) —")]
+        [Header("— Fire Tower —")]
 
         [Tooltip("Damage tăng thêm mỗi lần ramp. 0 = không ramp")]
         [Min(0f)]
         public float rampAmount;
 
-        [Tooltip("Thời gian giữa mỗi lần ramp (giây)")]
+        [Tooltip("Thời gian giữa mỗi lần tăng damage")]
         [Min(0.1f)]
         public float rampInterval;
 
-        [Tooltip("Damage tối đa (cap). Ramp không vượt quá giá trị này")]
+        [Tooltip("Damage tối đa. 0 = không giới hạn")]
         [Min(0f)]
         public float maxDamage;
 
         // ============================
-        // SLOW — Chỉ Ice Tower dùng
+        // ICE TOWER
         // ============================
 
-        [Header("— Slow (Ice Tower) —")]
+        [Header("— Ice Tower —")]
 
-        [Tooltip("Phần trăm giảm tốc (0.0 - 1.0). VD: 0.3 = chậm 30%")]
+        [Tooltip("Phần trăm làm chậm. VD: 0.3 = chậm 30%")]
         [Range(0f, 1f)]
         public float slowPercent;
 
-        [Tooltip("Phần trăm đóng băng mỗi 2 giây (Cấp 3). 0 = không freeze")]
-        [Range(0f, 1f)]
-        public float freezeChance;
-
-        [Tooltip("Thời gian đóng băng (giây)")]
+        [Tooltip("Thời gian làm chậm sau khi trúng đạn AoE")]
         [Min(0f)]
-        public float freezeDuration;
+        public float slowDuration;
 
         // ============================
-        // AOE — Chỉ Light Tower dùng
+        // AREA PROJECTILE
         // ============================
 
-        [Header("— AoE (Light Tower) —")]
+        [Header("— Area Projectile —")]
 
-        [Tooltip("Bán kính nổ khi đạn trúng (world units). 0 = single target")]
+        [Tooltip("Bán kính nổ của đạn AoE")]
         [Min(0f)]
         public float blastRadius;
 
         // ============================
-        // VISUAL
+        // LIGHT TOWER
         // ============================
 
-        [Header("— Visual —")]
+        [Header("— Light Tower —")]
 
-        [Tooltip("Sprite của tháp ở cấp này. Đổi khi upgrade")]
-        public Sprite towerSprite;
+        [Tooltip("Xác suất đạn gây x3 damage. VD: 0.2 = 20%")]
+        [Range(0f, 1f)]
+        public float tripleDamageChance;
 
         // ============================
         // COMPUTED PROPERTIES
         // ============================
 
-        /// <summary>
-        /// DPS cơ bản (không tính ramp, crit, AoE).
-        /// Dùng để hiển thị trên UI tooltip.
-        /// </summary>
-        public float BaseDPS => attackCooldown > 0 ? damage / attackCooldown : 0f;
+        public float BaseDPS => attackCooldown > 0f ? damage / attackCooldown : 0f;
     }
 
     [CreateAssetMenu(fileName = "NewTowerData", menuName = "TD/Tower Data", order = 1)]
@@ -106,17 +99,17 @@ namespace TowerDefense.Towers
 
         [Header("═══ Tower Identity ═══")]
 
-        [Tooltip("Tên hiển thị trên UI (VD: 'Tháp Lửa')")]
+        [Tooltip("Tên hiển thị trên UI")]
         public string towerName = "New Tower";
 
         [Tooltip("Mô tả ngắn cho tooltip")]
         [TextArea(2, 4)]
         public string description = "Tower description here.";
 
-        [Tooltip("Icon hiển thị trên RadialMenu khi chọn build")]
+        [Tooltip("Icon hiển thị trên RadialMenu")]
         public Sprite icon;
 
-        [Tooltip("Màu đại diện (dùng cho range indicator, UI highlight)")]
+        [Tooltip("Màu đại diện")]
         public Color themeColor = Color.white;
 
         // ============================
@@ -125,7 +118,7 @@ namespace TowerDefense.Towers
 
         [Header("═══ Prefab ═══")]
 
-        [Tooltip("Prefab của tower (chứa TowerBase component)")]
+        [Tooltip("Prefab của tower")]
         public GameObject towerPrefab;
 
         // ============================
@@ -138,25 +131,12 @@ namespace TowerDefense.Towers
         public TowerLevelData[] levels = new TowerLevelData[3];
 
         // ============================
-        // ABILITY (Cấp 3)
-        // ============================
-
-        [Header("═══ Ability Cấp 3 ═══")]
-
-        [Tooltip("Tên ability đặc biệt khi đạt Cấp 3")]
-        public string abilityName = "None";
-
-        [Tooltip("Mô tả ability cho UI tooltip")]
-        [TextArea(2, 3)]
-        public string abilityDescription = "";
-
-        // ============================
         // PUBLIC METHODS
         // ============================
 
         public TowerLevelData GetLevel(int levelIndex)
         {
-            if(levels == null || levels.Length == 0)
+            if (levels == null || levels.Length == 0)
             {
                 return new TowerLevelData();
             }
@@ -174,7 +154,7 @@ namespace TowerDefense.Towers
             int total = 0;
             int maxIndex = Mathf.Min(upToLevel, levels.Length - 1);
 
-            for(int i = 0; i <= maxIndex; i++)
+            for (int i = 0; i <= maxIndex; i++)
             {
                 total += levels[i].cost;
             }
@@ -186,7 +166,7 @@ namespace TowerDefense.Towers
         {
             int nextLevel = currentLevel + 1;
 
-            if(nextLevel >= MaxLevel)
+            if (nextLevel >= MaxLevel)
             {
                 return -1;
             }
@@ -200,7 +180,7 @@ namespace TowerDefense.Towers
         }
 
         // ============================
-        // VALIDATION (Editor only)
+        // VALIDATION
         // ============================
 
         public bool Validate(out string errorMessage)
@@ -225,20 +205,19 @@ namespace TowerDefense.Towers
                     return false;
                 }
 
-                if (levels[i].attackCooldown <= 0)
+                if (levels[i].attackCooldown <= 0f)
                 {
                     errorMessage = $"Level {i + 1} attackCooldown must be > 0";
                     return false;
                 }
 
-                if (levels[i].range <= 0)
+                if (levels[i].range <= 0f)
                 {
                     errorMessage = $"Level {i + 1} range must be > 0";
                     return false;
                 }
             }
 
-            // Kiểm tra cost tăng dần
             for (int i = 1; i < levels.Length; i++)
             {
                 if (levels[i].cost < levels[i - 1].cost)
@@ -260,12 +239,18 @@ namespace TowerDefense.Towers
             }
 
             string result = $"[TowerData] {towerName}\n";
+
             for (int i = 0; i < levels.Length; i++)
             {
-                var lv = levels[i];
-                result += $"  Lv{i + 1}: DMG={lv.damage} CD={lv.attackCooldown}s " +
-                          $"RNG={lv.range} Cost={lv.cost} " +
-                          $"DPS={lv.BaseDPS:F1}\n";
+                TowerLevelData lv = levels[i];
+
+                result +=
+                    $"  Lv{i + 1}: " +
+                    $"DMG={lv.damage} " +
+                    $"CD={lv.attackCooldown}s " +
+                    $"RNG={lv.range} " +
+                    $"Cost={lv.cost} " +
+                    $"DPS={lv.BaseDPS:F1}\n";
             }
 
             return result;

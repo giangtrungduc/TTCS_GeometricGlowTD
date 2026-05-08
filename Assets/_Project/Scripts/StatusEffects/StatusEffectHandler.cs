@@ -38,7 +38,6 @@ namespace TowerDefense.StatusEffects
 
         public int ActiveEffectCount => activeEffects.Count;
         public bool IsSlowed => HasEffect("Slow");
-        public bool IsFrozen => HasEffect("Freeze");
         public bool IsSpeedBuffed => HasEffect("SpeedBuff");
 
         // ===========================
@@ -115,6 +114,15 @@ namespace TowerDefense.StatusEffects
         public void AddEffect(StatusEffect effect)
         {
             if (effect == null) return;
+
+            if (effect.IsDebuff)
+            {
+                BossBase boss = GetComponent<BossBase>();
+                if (boss != null && !boss.CanReceiveDebuff(effect.EffectID))
+                {
+                    return;
+                }
+            }
 
             if (!effect.Stackable)
             {
@@ -200,18 +208,14 @@ namespace TowerDefense.StatusEffects
         // ===========================
 
         /// <summary>
-        /// Đổi màu tint theo độ ưu tiên: Freeze > Slow > SpeedBuff > Gốc.
+        /// Đổi màu tint theo độ ưu tiên: Slow > SpeedBuff > Gốc.
         /// Chỉ gọi khi colorDirty = true để tiết kiệm CPU.
         /// </summary>
         private void UpdateVisualTint()
         {
             if (SpriteRenderer == null) return;
 
-            if (IsFrozen)
-            {
-                SpriteRenderer.color = new Color(0.5f, 0.8f, 1f);    // Xanh băng
-            }
-            else if (IsSlowed)
+            if (IsSlowed)
             {
                 SpriteRenderer.color = new Color(0.6f, 0.7f, 1f);    // Xanh nhạt
             }

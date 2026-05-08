@@ -1,11 +1,20 @@
 ﻿using System;
 using UnityEngine;
 using TowerDefense.Utils;
+using TowerDefense.Enemies;
 
 namespace TowerDefense.Projectiles
 {
     /// <summary>
     /// Base class cho tất cả projectile.
+    /// Chịu trách nhiệm:
+    /// - Bay tới target.
+    /// - Kiểm tra va chạm.
+    /// - Gây damage.
+    /// - Truyền ProjectileEffect nếu có.
+    /// - Gọi callback effect do tower truyền vào nếu có.
+    /// - Spawn VFX nổ riêng của từng prefab đạn.
+    /// - Return về ObjectPool.
     /// </summary>
     [RequireComponent(typeof(SpriteRenderer))]
     public abstract class ProjectileBase : MonoBehaviour, IPoolable
@@ -28,6 +37,22 @@ namespace TowerDefense.Projectiles
         [Tooltip("Xoay đầu đạn theo hướng bay")]
         [SerializeField] protected bool rotateTowardsTarget = true;
 
+        [Header("Projectile Effects")]
+
+        [Tooltip("Effect mặc định gắn trên prefab đạn. Có thể để trống.")]
+        [SerializeField] private ProjectileEffect[] defaultEffects;
+
+        [Header("Impact VFX")]
+
+        [Tooltip("Hiệu ứng nổ / va chạm riêng của prefab đạn này.")]
+        [SerializeField] private GameObject impactVfxPrefab;
+
+        [Tooltip("Tự huỷ VFX sau X giây. Đặt <= 0 nếu VFX tự huỷ bằng ParticleSystem.")]
+        [SerializeField] private float impactVfxLifetime = 2f;
+
+        [Tooltip("Copy rotation của projectile sang VFX nổ.")]
+        [SerializeField] private bool impactVfxUseProjectileRotation = false;
+
         // ===========================
         // STATE
         // ===========================
@@ -38,8 +63,13 @@ namespace TowerDefense.Projectiles
         protected float lifetimeTimer;
         protected Vector3 lastKnownTargetPos;
         protected SpriteRenderer spriteRenderer;
+        protected ProjectileEffect[] effects;
+        protected float defaultMoveSpeed;
 
         private Action _returnCallback;
+        private Action<GameObject> onApplyEffectCallback;
+
+        private Color originalSpriteColor;
 
         // ===========================
         // PROPERTIES
@@ -53,25 +83,13 @@ namespace TowerDefense.Projectiles
         // IPOOLABLE IMPLEMENTATION
         // ===========================
 
-        /// <summary>
-        /// Được ObjectPool.Get() gọi để inject callback trả về đúng pool.
-        /// Tower không cần gọi method này — ObjectPool tự xử lý.
-        /// </summary>
         public void SetReturnCallback(Action returnCallback)
         {
             _returnCallback = returnCallback;
         }
 
-        /// <summary>
-        /// Gọi sau SetActive(true) và position đã đúng.
-        /// Override để reset visual, particle, animation.
-        /// </summary>
         public virtual void OnGetFromPool() { }
 
-        /// <summary>
-        /// Gọi trước SetActive(false).
-        /// Override để dọn dẹp trail, particle, unsubscribe event.
-        /// </summary>
         public virtual void OnReturnToPool() { }
 
         // ===========================
@@ -81,6 +99,12 @@ namespace TowerDefense.Projectiles
         protected virtual void Awake()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
+            defaultMoveSpeed = moveSpeed;
+
+            if (spriteRenderer != null)
+            {
+                originalSpriteColor = spriteRenderer.color;
+            }
         }
 
         protected virtual void OnEnable()
@@ -89,19 +113,28 @@ namespace TowerDefense.Projectiles
             target = null;
             damage = 0f;
             lifetimeTimer = 0f;
+            moveSpeed = defaultMoveSpeed;
+
+            effects = defaultEffects;
+            onApplyEffectCallback = null;
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = originalSpriteColor;
+            }
         }
 
         protected virtual void OnDisable()
         {
             isLaunched = false;
             target = null;
+            onApplyEffectCallback = null;
         }
 
         protected virtual void Update()
         {
             if (!isLaunched) return;
 
-            // 1. Kiểm tra timeout
             lifetimeTimer += Time.deltaTime;
             if (lifetimeTimer >= maxLifetime)
             {
@@ -110,7 +143,6 @@ namespace TowerDefense.Projectiles
                 return;
             }
 
-            // 2. Kiểm tra target còn hợp lệ
             if (target == null || !target.activeInHierarchy)
             {
                 OnTargetLost();
@@ -119,11 +151,10 @@ namespace TowerDefense.Projectiles
 
             lastKnownTargetPos = target.transform.position;
 
-            // 3. Di chuyển
             MoveTowardsTarget();
 
-            // 4. Kiểm tra va chạm
-            if ((Vector2)transform.position == (Vector2)lastKnownTargetPos || Vector2.Distance(transform.position, lastKnownTargetPos) <= hitDistance)
+            if ((Vector2)transform.position == (Vector2)lastKnownTargetPos ||
+                Vector2.Distance(transform.position, lastKnownTargetPos) <= hitDistance)
             {
                 HandleHit();
                 return;
@@ -136,10 +167,6 @@ namespace TowerDefense.Projectiles
         // PUBLIC API
         // ===========================
 
-        /// <summary>
-        /// Khởi động đạn hướng về target.
-        /// Gọi SAU khi đã lấy từ pool và set các thông số cần thiết.
-        /// </summary>
         public virtual void Launch(GameObject newTarget, float newDamage)
         {
             if (newTarget == null)
@@ -157,35 +184,41 @@ namespace TowerDefense.Projectiles
             if (rotateTowardsTarget)
             {
                 RotateTowards(lastKnownTargetPos);
-
             }
+
             OnLaunched();
         }
 
-        /// <summary>Launch với custom speed (override moveSpeed cho lần bắn này).</summary>
         public void Launch(GameObject newTarget, float newDamage, float customSpeed)
         {
             moveSpeed = customSpeed;
             Launch(newTarget, newDamage);
         }
 
+        public void SetEffects(params ProjectileEffect[] newEffects)
+        {
+            effects = newEffects;
+        }
+
+        /// <summary>
+        /// Dùng cho tower truyền logic effect trực tiếp vào projectile.
+        /// Ví dụ IceTower truyền callback add SlowEffect theo stats từng cấp.
+        /// </summary>
+        public void SetOnApplyEffect(Action<GameObject> callback)
+        {
+            onApplyEffectCallback = callback;
+        }
+
         // ===========================
         // ABSTRACT & VIRTUAL HOOKS
         // ===========================
 
-        /// <summary>Xử lý logic khi chạm mục tiêu. Bắt buộc override.</summary>
         protected abstract void OnHit(GameObject hitTarget, float hitDamage);
 
-        /// <summary>Gọi ngay sau Launch(). Dùng để khởi tạo visual, trail, particle.</summary>
         protected virtual void OnLaunched() { }
 
-        /// <summary>Gọi cuối Update() mỗi frame khi đạn đang bay.</summary>
         protected virtual void OnProjectileUpdate() { }
 
-        /// <summary>
-        /// Gọi khi target chết/mất trước khi đạn tới.
-        /// Mặc định: tiếp tục bay đến lastKnownTargetPos rồi return pool.
-        /// </summary>
         protected virtual void OnTargetLost()
         {
             if (Vector2.Distance(transform.position, lastKnownTargetPos) <= hitDistance)
@@ -194,9 +227,10 @@ namespace TowerDefense.Projectiles
                 return;
             }
 
-            // Tiếp tục bay về vị trí cuối cùng đã biết
             transform.position = Vector2.MoveTowards(
-                transform.position, lastKnownTargetPos, moveSpeed * Time.deltaTime
+                transform.position,
+                lastKnownTargetPos,
+                moveSpeed * Time.deltaTime
             );
 
             if (rotateTowardsTarget)
@@ -213,12 +247,48 @@ namespace TowerDefense.Projectiles
         }
 
         // ===========================
+        // DAMAGE + EFFECT
+        // ===========================
+
+        protected void ApplyDamageAndEffects(GameObject enemyObject, float hitDamage)
+        {
+            if (enemyObject == null) return;
+            if (!enemyObject.activeInHierarchy) return;
+
+            IDamageable damageable = enemyObject.GetComponent<IDamageable>();
+
+            if (damageable != null)
+            {
+                damageable.TakeDamage(hitDamage);
+            }
+
+            if (!enemyObject.activeInHierarchy) return;
+
+            if (effects != null)
+            {
+                for (int i = 0; i < effects.Length; i++)
+                {
+                    ProjectileEffect effect = effects[i];
+                    if (effect == null) continue;
+
+                    effect.Apply(enemyObject);
+                }
+            }
+
+            onApplyEffectCallback?.Invoke(enemyObject);
+        }
+
+        // ===========================
         // PRIVATE HELPERS
         // ===========================
 
         private void MoveTowardsTarget()
         {
-            transform.position = Vector2.MoveTowards(transform.position, lastKnownTargetPos, moveSpeed * Time.deltaTime);
+            transform.position = Vector2.MoveTowards(
+                transform.position,
+                lastKnownTargetPos,
+                moveSpeed * Time.deltaTime
+            );
 
             if (rotateTowardsTarget)
             {
@@ -237,6 +307,10 @@ namespace TowerDefense.Projectiles
 
         private void HandleHit()
         {
+            Vector3 hitPosition = transform.position;
+
+            SpawnImpactVfx(hitPosition);
+
             if (target != null && target.activeInHierarchy)
             {
                 OnHit(target, damage);
@@ -245,31 +319,42 @@ namespace TowerDefense.Projectiles
             ReturnToPool();
         }
 
+        private void SpawnImpactVfx(Vector3 position)
+        {
+            if (impactVfxPrefab == null) return;
+
+            Quaternion rotation = impactVfxUseProjectileRotation
+                ? transform.rotation
+                : Quaternion.identity;
+
+            GameObject vfx = Instantiate(impactVfxPrefab, position, rotation);
+
+            if (impactVfxLifetime > 0f)
+            {
+                Destroy(vfx, impactVfxLifetime);
+            }
+        }
+
         // ===========================
         // POOL RETURN
         // ===========================
 
-        /// <summary>
-        /// Trả đạn về pool đúng cách.
-        /// Nếu có _returnCallback (inject bởi ObjectPool): gọi pool.Return(this) → push vào stack.
-        /// Nếu không có (fallback): chỉ SetActive(false).
-        /// </summary>
         protected void ReturnToPool()
         {
             isLaunched = false;
             target = null;
+            onApplyEffectCallback = null;
 
-            // Lấy callback ra và clear trước khi invoke — chống re-entrance
             Action cb = _returnCallback;
             _returnCallback = null;
 
             if (cb != null)
             {
-                cb.Invoke(); // → pool.Return(this) → OnReturnToPool() → SetActive(false) → Push
+                cb.Invoke();
             }
             else
             {
-                gameObject.SetActive(false); // fallback nếu không qua ObjectPool
+                gameObject.SetActive(false);
             }
         }
 

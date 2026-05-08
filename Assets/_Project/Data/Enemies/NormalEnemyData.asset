@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: Normal
   description: 
-  enemySprite: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}
-  themeColor: {r: 1, g: 0.33333334, b: 0.33333334, a: 1}
+  enemySprite: {fileID: -3170747201195620603, guid: 3066031a1d545ed4f89ea98d93b643b6, type: 3}
+  themeColor: {r: 1, g: 1, b: 1, a: 1}
   maxHp: 100
-  moveSpeed: 2
+  moveSpeed: 3
   goldReward: 10
   livesCost: 1

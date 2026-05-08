@@ -14,14 +14,14 @@ GameObject:
   - component: {fileID: 8743443591752963606}
   - component: {fileID: 4003474543438101783}
   - component: {fileID: 213539580424055347}
-  - component: {fileID: 4251202777108874987}
+  - component: {fileID: 5265461503054267289}
   m_Layer: 6
   m_Name: TankEnemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1224079329429814339
 Transform:
   m_ObjectHideFlags: 0
@@ -31,7 +31,7 @@ Transform:
   m_GameObject: {fileID: 8112590539167139535}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.396958, y: -0.512439, z: 0}
+  m_LocalPosition: {x: 0.24160129, y: 3.840023, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -81,7 +81,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 3
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: 65835131949856381, guid: 5fbe3dee0ecb0a945ab6f4d278e49f85, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -179,7 +179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df27f2b472e66fa439086a71d956cf3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &4251202777108874987
+--- !u!114 &5265461503054267289
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -188,7 +188,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 8112590539167139535}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ec69e8ee261678b46a28fe25a6fffbc0, type: 3}
+  m_Script: {fileID: 11500000, guid: d77023b58b8ca624f9b25cc017d2e1a5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   enemyData: {fileID: 11400000, guid: d6927ff5874559d448e3aab6e23362c3, type: 2}

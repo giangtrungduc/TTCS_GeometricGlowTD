@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using TMPro;
 using TowerDefense.Core;
+using UnityEngine.UI;
 
 namespace TowerDefense.UI
 {
@@ -10,7 +11,7 @@ namespace TowerDefense.UI
         // CẤU HÌNH
         // ============================
 
-        [Header("HUD Texts")]
+        [Header("HUD")]
         [Tooltip("Text hiển thị Gold")]
         [SerializeField] private TextMeshProUGUI goldText;
 
@@ -23,6 +24,9 @@ namespace TowerDefense.UI
         [Header("Wave Settings")]
         [Tooltip("Tổng số wave của level hiện tại (dùng để hiển thị X/Y)")]
         [SerializeField] private int totalWaves = 8;
+
+        [Tooltip("Nút bắt đầu wave sớm để nhận thưởng")]
+        [SerializeField] private Button startWaveButton;
 
         // ============================
         // STATE
@@ -39,6 +43,13 @@ namespace TowerDefense.UI
             GameEvents.OnGoldChanged += UpdateGoldUI;
             GameEvents.OnLivesChanged += UpdateLivesUI;
             GameEvents.OnWaveStarted += UpdateWaveUI;
+            GameEvents.OnWaveStarted += HandleWaveStarted;
+            GameEvents.OnWaveCompleted += HandleWaveCompleted;
+            GameEvents.OnWaveCountdownChanged += HandleWaveCountdownChanged;
+            if(startWaveButton != null)
+            {
+                startWaveButton.onClick.AddListener(OnStartWaveButtonClicked);
+            }
         }
 
         private void OnDisable()
@@ -46,13 +57,25 @@ namespace TowerDefense.UI
             GameEvents.OnGoldChanged -= UpdateGoldUI;
             GameEvents.OnLivesChanged -= UpdateLivesUI;
             GameEvents.OnWaveStarted -= UpdateWaveUI;
+            GameEvents.OnWaveStarted -= HandleWaveStarted;
+            GameEvents.OnWaveCompleted -= HandleWaveCompleted;
+            GameEvents.OnWaveCountdownChanged -= HandleWaveCountdownChanged;
+            if(startWaveButton != null)
+            {
+                startWaveButton.onClick.RemoveListener(OnStartWaveButtonClicked);
+            }
         }
 
         private void Start()
         {
+            if(WaveManager.Instance != null)
+            {
+                totalWaves = WaveManager.Instance.TotalWaves;
+            }
             UpdateGoldUI(EconomyManager.Instance != null ? EconomyManager.Instance.CurrentGold : 100);
             UpdateLivesUI(EconomyManager.Instance != null ? EconomyManager.Instance.CurrentLives : 20);
             UpdateWaveUI(0);
+            RefreshStartWaveButton();
         }
 
         // ============================
@@ -83,10 +106,34 @@ namespace TowerDefense.UI
                 waveText.text = $"Wave {currentWaveIndex}/{totalWaves}";
             }
         }
+        private void HandleWaveStarted(int waveIndex)
+        {
+            RefreshStartWaveButton();
+        }
+        private void HandleWaveCompleted(int waveIndex)
+        {
+            RefreshStartWaveButton();
+        }
+        private void HandleWaveCountdownChanged(int waveIndex, float timeRemaining)
+        {
+            RefreshStartWaveButton();
+        }
+        private void RefreshStartWaveButton()
+        {
+            if(startWaveButton == null || WaveManager.Instance == null || GameManager.Instance == null) return;
+            bool shouldShowButton = (WaveManager.Instance.State == WaveState.Prepare) && (GameManager.Instance.CurrentState != GameState.Paused);
+            startWaveButton.gameObject.SetActive(shouldShowButton);
+        }
 
         // ============================
         // PUBLIC 
         // ============================
+
+        public void OnStartWaveButtonClicked()
+        {
+            if(WaveManager.Instance == null) return;
+            WaveManager.Instance.StartNextWave();
+        }
 
         /// <summary>
         /// Gọi thủ công khi muốn reset HUD
@@ -99,6 +146,7 @@ namespace TowerDefense.UI
                 UpdateLivesUI(EconomyManager.Instance.CurrentLives);
             }
             UpdateWaveUI(currentWaveIndex - 1);
+            RefreshStartWaveButton();
         }
     }
 }

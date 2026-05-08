@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: Tank
   description: 
-  enemySprite: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}
-  themeColor: {r: 1, g: 0.53333336, b: 0.26666668, a: 1}
-  maxHp: 300
-  moveSpeed: 1
+  enemySprite: {fileID: 65835131949856381, guid: 5fbe3dee0ecb0a945ab6f4d278e49f85, type: 3}
+  themeColor: {r: 1, g: 1, b: 1, a: 1}
+  maxHp: 400
+  moveSpeed: 2
   goldReward: 25
   livesCost: 2

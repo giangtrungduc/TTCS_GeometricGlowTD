@@ -4,7 +4,7 @@ using UnityEngine;
 namespace TowerDefense.StatusEffects
 {
     /// <summary>
-    /// Base class cho mọi status effect (Slow, Freeze, SpeedBuff, ...).
+    /// Base class cho mọi status effect (Slow, SpeedBuff, ...).
     /// Lifecycle: Apply → Tick (mỗi frame) → Remove.
     /// Được quản lý hoàn toàn bởi <see cref="StatusEffectHandler"/>.
     /// </summary>

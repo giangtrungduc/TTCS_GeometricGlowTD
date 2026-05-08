@@ -1188,7 +1188,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 1
+  m_PresetInfoIsWorld: 0
 --- !u!114 &5166200071051350626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1225,10 +1225,10 @@ MonoBehaviour:
   menuCanvas: {fileID: 4278164523543971007}
   backgroundRect: {fileID: 2752782358275425829}
   availableTowers:
-  - {fileID: 11400000, guid: 5e7824a65bb498e49935f414b98cfe48, type: 2}
-  - {fileID: 11400000, guid: 51f087f69dca06b418e0b03e237bb131, type: 2}
-  - {fileID: 11400000, guid: 7940201d126894745a00fcadb8d22dc9, type: 2}
-  - {fileID: 11400000, guid: 9556560fc353c9a48988e74c9c29fd11, type: 2}
+  - {fileID: 11400000, guid: 385083363bf3c724d806e5d9640cc85b, type: 2}
+  - {fileID: 11400000, guid: 5d6fb62f6c7b9b34c897e2da84f49f32, type: 2}
+  - {fileID: 11400000, guid: df98f195cb64f874c9699f210e919063, type: 2}
+  - {fileID: 11400000, guid: 543f9b121dce90e42aaae659d788ac99, type: 2}
   optionPool:
   - {fileID: 8478650189453565227}
   - {fileID: 309346876423504089}

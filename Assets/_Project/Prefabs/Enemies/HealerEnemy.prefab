@@ -14,15 +14,15 @@ GameObject:
   - component: {fileID: 6047055497247515600}
   - component: {fileID: 245862381201385281}
   - component: {fileID: 9216521281804847369}
-  - component: {fileID: 196970786136400155}
   - component: {fileID: -9081621858893093410}
+  - component: {fileID: 8103999254429707683}
   m_Layer: 6
   m_Name: HealerEnemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &9206479940848276204
 Transform:
   m_ObjectHideFlags: 0
@@ -32,7 +32,7 @@ Transform:
   m_GameObject: {fileID: 8859517447309252282}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.396958, y: -0.512439, z: 0}
+  m_LocalPosition: {x: 2.58, y: 3.72, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -82,7 +82,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 3
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: -271177675801930975, guid: 12a401d00b9296f4ea0332d67361b7bc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -180,19 +180,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df27f2b472e66fa439086a71d956cf3f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &196970786136400155
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8859517447309252282}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 079fd7326f82d1348b2087d5856b7c91, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  enemyData: {fileID: 11400000, guid: ccc3ef6806eea3b42a982f6f3c2c9c3c, type: 2}
 --- !u!114 &-9081621858893093410
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -212,3 +199,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   maxTargets: 20
+--- !u!114 &8103999254429707683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8859517447309252282}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d77023b58b8ca624f9b25cc017d2e1a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyData: {fileID: 11400000, guid: ccc3ef6806eea3b42a982f6f3c2c9c3c, type: 2}

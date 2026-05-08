@@ -6,57 +6,38 @@ using TowerDefense.Utils;
 
 namespace TowerDefense.Enemies
 {
+    public interface IEnemyDeathListener
+    {
+        void OnEnemyDeath(EnemyBase enemy);
+    }
+
     [RequireComponent(typeof(PathFollower))]
     [RequireComponent(typeof(StatusEffectHandler))]
     [RequireComponent(typeof(SpriteRenderer))]
-    public abstract class EnemyBase : MonoBehaviour, IDamageable, IPoolable
+    public class EnemyBase : MonoBehaviour, IDamageable, IPoolable
     {
-        // ===========================
-        // CẤU HÌNH
-        // ===========================
-
         [Header("Enemy Data")]
+        [Tooltip("Dữ liệu cấu hình của enemy: máu, tốc độ, phần thưởng, sprite, màu chủ đạo.")]
         [SerializeField] private EnemyData enemyData;
-
-        // ===========================
-        // REFERENCES
-        // ===========================
 
         protected PathFollower pathFollower;
         protected StatusEffectHandler statusHandler;
         protected SpriteRenderer spriteRenderer;
 
-        // ===========================
-        // STATE
-        // ===========================
-
         private float currentHp;
         private bool isDead;
         private bool isInitialized;
-
         private Action _returnCallback;
-
-        // ===========================
-        // PROPERTIES (IDamageable)
-        // ===========================
 
         public float CurrentHp => currentHp;
         public float MaxHp => enemyData != null ? enemyData.maxHp : 0f;
         public float HpPercent => MaxHp > 0f ? currentHp / MaxHp : 0f;
         public bool IsDead => isDead;
 
-        // ===========================
-        // PROPERTIES
-        // ===========================
-
         public EnemyData Data => enemyData;
         public PathFollower PathFollower => pathFollower;
         public StatusEffectHandler StatusHandler => statusHandler;
         public bool IsInitialized => isInitialized;
-
-        // ===========================
-        // IPOOLABLE
-        // ===========================
 
         public void SetReturnCallback(Action returnCallback)
         {
@@ -71,10 +52,6 @@ namespace TowerDefense.Enemies
         {
             isInitialized = false;
         }
-
-        // ===========================
-        // UNITY LIFECYCLE
-        // ===========================
 
         protected virtual void Awake()
         {
@@ -119,10 +96,6 @@ namespace TowerDefense.Enemies
             }
         }
 
-        // ===========================
-        // PUBLIC API
-        // ===========================
-
         /// <summary>
         /// Khởi tạo PathFollower với path và speed.
         /// Gọi bởi WaveManager sau khi lấy từ pool.
@@ -146,17 +119,35 @@ namespace TowerDefense.Enemies
             OnSpawned();
         }
 
-        // ===========================
-        // IDAMAGEABLE
-        // ===========================
+        public void Initialize(WaypointPath path, Vector2 startPosition, int waypointIndex, float speedMultiplier = 1f)
+        {
+            if (enemyData == null)
+            {
+                Debug.LogError($"[{GetType().Name}] Initialize thất bại: EnemyData null ({name})");
+                return;
+            }
+            if (path == null)
+            {
+                Debug.LogError($"[{GetType().Name}] Initialize thất bại: path null ({name})");
+                return;
+            }
+
+            pathFollower?.Initialize(path, enemyData.moveSpeed * speedMultiplier, startPosition, waypointIndex);
+            isInitialized = true;
+
+            OnSpawned();
+        }
 
         public void TakeDamage(float damage)
         {
             if (isDead || damage <= 0f) return;
 
+            float previousHp = currentHp;
             currentHp = Mathf.Max(0f, currentHp - damage);
+            float appliedDamage = previousHp - currentHp;
 
             OnDamaged(damage);
+            OnDamaged(damage, appliedDamage, previousHp, currentHp);
 
             if (currentHp <= 0f)
                 Die();
@@ -172,10 +163,6 @@ namespace TowerDefense.Enemies
             OnHealed(currentHp - before);
         }
 
-        // ===========================
-        // HOOKS (subclass override)
-        // ===========================
-
         /// <summary>Gọi trong Awake. Cache component, khởi tạo ability riêng.</summary>
         protected virtual void OnEnemyAwake() { }
 
@@ -185,15 +172,17 @@ namespace TowerDefense.Enemies
         /// <summary>Gọi mỗi lần nhận damage (trước khi Die nếu HP = 0).</summary>
         protected virtual void OnDamaged(float damageAmount) { }
 
+        /// <summary>
+        /// Hook mở rộng cho các subclass cần biết damage thực áp dụng và snapshot HP.
+        /// Mặc định giữ tương thích ngược bằng cách không làm gì thêm.
+        /// </summary>
+        protected virtual void OnDamaged(float incomingDamage, float appliedDamage, float previousHp, float currentHp) { }
+
         /// <summary>Gọi mỗi lần được heal.</summary>
         protected virtual void OnHealed(float healAmount) { }
 
         /// <summary>Gọi khi HP = 0, trước khi trả về pool.</summary>
         protected virtual void OnDeath() { }
-
-        // ===========================
-        // DEATH
-        // ===========================
 
         private void Die()
         {
@@ -202,6 +191,12 @@ namespace TowerDefense.Enemies
 
             // Subclass xử lý animation/loot/particle trước khi về pool
             OnDeath();
+
+            var deathListeners = GetComponents<IEnemyDeathListener>();
+            for (int i = 0; i < deathListeners.Length; i++)
+            {
+                deathListeners[i].OnEnemyDeath(this);
+            }
 
             GameEvents.RaiseEnemyDied(gameObject);
 
@@ -220,9 +215,6 @@ namespace TowerDefense.Enemies
                 gameObject.SetActive(false);
         }
 
-        // ===========================
-        // GIZMOS
-        // ===========================
 #if UNITY_EDITOR
         protected virtual void OnDrawGizmosSelected()
         {
@@ -232,8 +224,7 @@ namespace TowerDefense.Enemies
 
             if (statusHandler != null)
             {
-                if (statusHandler.IsFrozen) label += "\n❄ FROZEN";
-                else if (statusHandler.IsSlowed) label += "\n🐢 SLOWED";
+                if (statusHandler.IsSlowed) label += "\n🐢 SLOWED";
                 if (statusHandler.IsSpeedBuffed) label += "\n⚡ BUFFED";
             }
 

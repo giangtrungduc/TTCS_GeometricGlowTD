@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyName: Healer
   description: 
-  enemySprite: {fileID: 7482667652216324306, guid: b41dd3b8d686e0c4aaae160f66f77145, type: 3}
-  themeColor: {r: 0.8, g: 1, b: 0.8, a: 1}
+  enemySprite: {fileID: -271177675801930975, guid: 12a401d00b9296f4ea0332d67361b7bc, type: 3}
+  themeColor: {r: 1, g: 1, b: 1, a: 1}
   maxHp: 90
   moveSpeed: 1.8
   goldReward: 15

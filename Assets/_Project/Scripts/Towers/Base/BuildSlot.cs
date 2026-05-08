@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 using TowerDefense.Core;
+using TowerDefense.UI;
 
 namespace TowerDefense.Towers
 {
     [RequireComponent(typeof(Collider2D))]
     public class BuildSlot : MonoBehaviour
     {
-        [Header("Build Slot")]
+        [Header("Ô xây tower")]
+        [Tooltip("Prefab radial menu dùng để xây, nâng cấp hoặc bán tower.")]
         [SerializeField] private RadialMenu radialMenuPrefab;
 
         private TowerBase currentTower;
@@ -15,7 +17,6 @@ namespace TowerDefense.Towers
 
         public bool IsOccupied => currentTower != null;
         public TowerBase CurrentTower => currentTower;
-
         public Vector2 SlotSize => slotCollider != null ? slotCollider.bounds.size : Vector2.one;
 
         private void Awake()
@@ -25,7 +26,14 @@ namespace TowerDefense.Towers
 
         private void OnMouseDown()
         {
-            if (currentMenu != null) { CloseMenu(); return; }
+            if (!CanOpenMenu()) return;
+
+            if (currentMenu != null)
+            {
+                CloseMenu();
+                return;
+            }
+
             OpenMenu();
         }
 
@@ -40,54 +48,58 @@ namespace TowerDefense.Towers
 
             TowerLevelData level0 = towerData.GetLevel(0);
 
-            // Bỏ qua trừ tiền nếu đang test không có EconomyManager
             if (EconomyManager.Instance != null)
             {
                 if (!EconomyManager.Instance.TrySpendGold(level0.cost))
                 {
-                    Debug.LogWarning($"[BuildSlot] Không đủ gold để mua {towerData.towerName}");
+                    Debug.LogWarning($"[BuildSlot] Không đủ gold để mua {towerData.towerName}", this);
                     return;
                 }
             }
 
-            GameObject go = Instantiate(towerData.towerPrefab, transform.position, Quaternion.identity);
-            currentTower = go.GetComponent<TowerBase>();
+            GameObject towerObject = Instantiate(towerData.towerPrefab, transform.position, Quaternion.identity);
+            currentTower = towerObject.GetComponent<TowerBase>();
+
+            if (currentTower == null)
+            {
+                Debug.LogError("[BuildSlot] Tower prefab không có TowerBase.", towerObject);
+                Destroy(towerObject);
+                return;
+            }
+
             currentTower.Activate();
             currentTower.SetInvestment(level0.cost);
 
-            GameEvents.RaiseTowerPlaced(go);
+            GameEvents.RaiseTowerPlaced(towerObject);
             CloseMenu();
         }
 
         public void UpgradeTower()
         {
-            if (!IsOccupied || !currentTower.CanUpgrade) return;
+            if (!IsOccupied || currentTower == null || !currentTower.CanUpgrade) return;
 
             bool canUpgrade = false;
 
             if (EconomyManager.Instance != null)
             {
-                if (EconomyManager.Instance.TrySpendGold(currentTower.UpgradeCost))
-                    canUpgrade = true;
+                canUpgrade = EconomyManager.Instance.TrySpendGold(currentTower.UpgradeCost);
             }
             else
             {
-                canUpgrade = true; // Cho phép upgrade free để test
+                canUpgrade = true;
             }
 
-            if (canUpgrade)
+            if (!canUpgrade) return;
+
+            if (currentTower.Upgrade())
             {
-                if (currentTower.Upgrade())
-                {
-                    GameEvents.RaiseTowerUpgraded(currentTower.gameObject);
-                    CloseMenu();
-                }
+                CloseMenu();
             }
         }
 
         public void SellTower()
         {
-            if (!IsOccupied) return;
+            if (!IsOccupied || currentTower == null) return;
 
             if (EconomyManager.Instance != null)
             {
@@ -96,15 +108,24 @@ namespace TowerDefense.Towers
 
             GameEvents.RaiseTowerSold(currentTower.gameObject);
             Destroy(currentTower.gameObject);
+
             currentTower = null;
             CloseMenu();
+        }
+
+        public void CloseMenu()
+        {
+            if (currentMenu == null) return;
+
+            Destroy(currentMenu.gameObject);
+            currentMenu = null;
         }
 
         private void OpenMenu()
         {
             if (radialMenuPrefab == null)
             {
-                Debug.LogError("[BuildSlot] Chưa gán RadialMenuPrefab!", this);
+                Debug.LogError("[BuildSlot] Chưa gán RadialMenuPrefab.", this);
                 return;
             }
 
@@ -112,11 +133,12 @@ namespace TowerDefense.Towers
             currentMenu.Open(this);
         }
 
-        public void CloseMenu()
+        private bool CanOpenMenu()
         {
-            if (currentMenu == null) return;
-            Destroy(currentMenu.gameObject);
-            currentMenu = null;
+            if (GameManager.Instance == null) return true;
+
+            GameState state = GameManager.Instance.CurrentState;
+            return state == GameState.Playing;
         }
 
 #if UNITY_EDITOR
@@ -125,6 +147,7 @@ namespace TowerDefense.Towers
             Gizmos.color = IsOccupied
                 ? new Color(0f, 1f, 0f, 0.35f)
                 : new Color(1f, 1f, 0f, 0.2f);
+
             Gizmos.DrawWireCube(transform.position, SlotSize);
         }
 #endif

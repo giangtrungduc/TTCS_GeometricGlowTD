@@ -4,7 +4,6 @@ using TowerDefense.Core;
 namespace TowerDefense.Towers
 {
     [RequireComponent(typeof(TargetingSystem))]
-    [RequireComponent(typeof(SpriteRenderer))]
     public abstract class TowerBase : MonoBehaviour
     {
         // ============================
@@ -15,13 +14,21 @@ namespace TowerDefense.Towers
         [Tooltip("SO chứa thông số của tháp")]
         [SerializeField] private TowerData towerData;
 
+        [Header("Visual & Fire Point")]
+        [Tooltip("Transform visual của súng / nòng tháp, dùng để xoay về hướng enemy")]
+        [SerializeField] private Transform gunVisual;
+
+        [Tooltip("Vị trí viên đạn được bắn ra")]
+        [SerializeField] private Transform firePoint;
+
+        [Tooltip("Offset góc xoay nếu sprite súng không mặc định quay sang phải. Nếu sprite quay lên trên, thử -90.")]
+        [SerializeField] private float gunRotationOffset = -90f;
+
         // ============================
         // CACHED REFERENCES & STATE
         // ============================
 
         private TargetingSystem targeting;
-        private SpriteRenderer spriteRenderer;
-
         private int currentLevel = 0; // 0-based (0 = Cấp 1)
         private float attackTimer = 0f;
         private int totalInvested = 0;
@@ -43,6 +50,9 @@ namespace TowerDefense.Towers
         protected GameObject CurrentTarget => targeting?.CurrentTarget;
         protected bool HasTarget => targeting != null && targeting.HasTarget;
 
+        protected Transform GunVisual => gunVisual;
+        protected Transform FirePoint => firePoint != null ? firePoint : transform;
+
         // ============================
         // UNITY LIFECYCLE
         // ============================
@@ -50,11 +60,20 @@ namespace TowerDefense.Towers
         protected virtual void Awake()
         {
             targeting = GetComponent<TargetingSystem>();
-            spriteRenderer = GetComponent<SpriteRenderer>();
 
             if (towerData == null)
             {
                 Debug.LogError($"[TowerBase] '{gameObject.name}' missing TowerData!");
+            }
+
+            if (gunVisual == null)
+            {
+                Debug.LogWarning($"[TowerBase] '{gameObject.name}' missing Gun Visual. Tower will still attack, but gun will not rotate.");
+            }
+
+            if (firePoint == null)
+            {
+                Debug.LogWarning($"[TowerBase] '{gameObject.name}' missing Fire Point. Projectile will spawn at tower transform position.");
             }
 
             OnTowerAwake();
@@ -71,17 +90,24 @@ namespace TowerDefense.Towers
 
             attackTimer -= Time.deltaTime;
 
+            GameObject target = targeting.GetBestTarget();
+
+            // Luôn xoay gun về hướng enemy khi có enemy trong phạm vi
+            if (target != null)
+            {
+                RotateGunTowards(target);
+            }
+
             if (attackTimer > 0f)
             {
                 OnTowerUpdate();
                 return;
             }
 
-            GameObject target = targeting.GetBestTarget();
-
             if (target != null)
             {
                 TowerLevelData stats = CurrentStats;
+
                 OnAttack(target, stats);
                 attackTimer = stats.attackCooldown;
             }
@@ -115,11 +141,11 @@ namespace TowerDefense.Towers
         public void Activate()
         {
             isActive = true;
+
             if (targeting != null && towerData != null)
             {
                 targeting.SetRange(CurrentStats.range);
             }
-            UpdateVisual();
         }
 
         /// <summary>Nâng cấp tháp.</summary>
@@ -129,9 +155,11 @@ namespace TowerDefense.Towers
 
             currentLevel++;
 
-            if (targeting != null) targeting.SetRange(CurrentStats.range);
+            if (targeting != null)
+            {
+                targeting.SetRange(CurrentStats.range);
+            }
 
-            UpdateVisual();
             totalInvested += CurrentStats.cost;
 
             OnUpgraded();
@@ -151,7 +179,10 @@ namespace TowerDefense.Towers
             totalInvested = 0;
             attackTimer = 0f;
 
-            if (targeting != null) targeting.ClearTarget();
+            if (targeting != null)
+            {
+                targeting.ClearTarget();
+            }
         }
 
         // ============================
@@ -162,19 +193,21 @@ namespace TowerDefense.Towers
         protected void SetAttackCooldown(float cooldown) => attackTimer = cooldown;
         protected bool IsTargetStillValid() => targeting != null && targeting.IsCurrentTargetValid();
 
-        // ============================
-        // PRIVATE
-        // ============================
-
-        private void UpdateVisual()
+        /// <summary>
+        /// Xoay gunVisual về phía target.
+        /// Mặc định sprite gun nên quay sang phải theo trục X.
+        /// Nếu sprite gun quay lên trên, set gunRotationOffset = -90 trong Inspector.
+        /// </summary>
+        protected virtual void RotateGunTowards(GameObject target)
         {
-            if (spriteRenderer == null || towerData == null) return;
+            if (gunVisual == null || target == null) return;
 
-            Sprite levelSprite = CurrentStats.towerSprite;
-            if (levelSprite != null)
-            {
-                spriteRenderer.sprite = levelSprite;
-            }
+            Vector3 direction = target.transform.position - gunVisual.position;
+
+            if (direction.sqrMagnitude <= 0.0001f) return;
+
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            gunVisual.rotation = Quaternion.Euler(0f, 0f, angle + gunRotationOffset);
         }
 
         // ============================
@@ -205,6 +238,13 @@ namespace TowerDefense.Towers
             rangeColor.a = 0.05f;
             Gizmos.color = rangeColor;
             Gizmos.DrawSphere(transform.position, range);
+
+            if (firePoint != null)
+            {
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(firePoint.position, 0.1f);
+                Gizmos.DrawLine(firePoint.position, firePoint.position + firePoint.right * 0.4f);
+            }
         }
     }
 }

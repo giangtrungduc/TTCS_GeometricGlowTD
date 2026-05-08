@@ -1,135 +1,90 @@
-﻿// ============================================================
-// File: LightTower.cs
-// Vị trí: Assets/_Project/Scripts/Towers/LightTower.cs
-// Mục đích: Tháp kiểm soát đám đông (AoE), bắn cầu năng lượng.
-// Kỹ năng Cấp 3 (Phán Xét): Có xác suất bắn 2 hoặc 4 viên đạn cùng lúc.
-// ============================================================
-
-using UnityEngine;
+﻿using UnityEngine;
 using TowerDefense.Projectiles;
 using TowerDefense.Utils;
 
 namespace TowerDefense.Towers
 {
+    /// <summary>
+    /// Tháp ánh sáng:
+    /// - Bắn đạn AoE.
+    /// - Mỗi cấp có xác suất riêng để đạn gây x3 damage.
+    /// - tripleDamageChance lấy từ TowerData.
+    /// </summary>
     public class LightTower : TowerBase
     {
-        // ============================
-        // CẤU HÌNH
-        // ============================
-
         [Header("Light Tower")]
-        [SerializeField] private OrbProjectile orbPrefab;
+        [SerializeField] private AreaProjectile projectilePrefab;
 
-        [Header("Phán Xét (Cấp 3)")]
-        [Tooltip("Xác suất bắn 2 orb (0.0 - 1.0)")]
-        [Range(0f, 1f)]
-        [SerializeField] private float doubleOrbChance = 0.2f;
+        [Header("Triple Damage")]
+        [Tooltip("Hệ số sát thương khi proc. Theo thiết kế là x3.")]
+        [SerializeField] private float tripleDamageMultiplier = 3f;
 
-        [Tooltip("Xác suất bắn 4 orb (0.0 - 1.0). Phải < doubleOrbChance")]
-        [Range(0f, 1f)]
-        [SerializeField] private float quadOrbChance = 0.01f;
+        private ObjectPool<AreaProjectile> projectilePool;
 
-        // ============================
-        // STATE
-        // ============================
+        private int totalShots;
+        private int tripleShots;
 
-        private ObjectPool<OrbProjectile> orbPool;
-        private int totalShots = 0;
-        private int doubleProcs = 0;
-        private int quadProcs = 0;
-
-        // ============================
-        // PROPERTIES
-        // ============================
-
-        public bool IsJudgmentUnlocked => CurrentLevel >= 2;
         public int TotalShots => totalShots;
-        public int DoubleProcs => doubleProcs;
-        public int QuadProcs => quadProcs;
-
-        // ============================
-        // INIT
-        // ============================
+        public int TripleShots => tripleShots;
+        public float ActualTripleRate => totalShots > 0 ? (float)tripleShots / totalShots : 0f;
 
         protected override void OnTowerAwake()
         {
-            if (orbPrefab == null)
+            if (projectilePrefab == null)
             {
-                Debug.LogError($"[LightTower] '{gameObject.name}' thiếu orbPrefab!");
+                Debug.LogError($"[LightTower] '{gameObject.name}' thiếu projectilePrefab!");
                 return;
             }
 
-            orbPool = new ObjectPool<OrbProjectile>(orbPrefab, transform, 5);
+            projectilePool = new ObjectPool<AreaProjectile>(projectilePrefab, transform, 5);
         }
-
-        // ============================
-        // ATTACK LOGIC
-        // ============================
 
         protected override void OnAttack(GameObject target, TowerLevelData stats)
         {
-            if (orbPool == null) return;
+            if (projectilePool == null) return;
 
             totalShots++;
-            int orbCount = 1;
 
-            // Xử lý kỹ năng Phán Xét
-            if (IsJudgmentUnlocked)
+            float finalDamage = stats.damage;
+            bool isTripleDamage = Random.value < stats.tripleDamageChance;
+
+            if (isTripleDamage)
             {
-                float roll = Random.value;
-
-                if (roll < quadOrbChance) // 1% ra 4 viên
-                {
-                    orbCount = 4;
-                    quadProcs++;
-                    Debug.Log($"<color=yellow>[LightTower]</color> ⚡⚡⚡⚡ QUAD JUDGMENT! (Lần {quadProcs}/{totalShots} phát)");
-                }
-                else if (roll < doubleOrbChance) // 19% ra 2 viên
-                {
-                    orbCount = 2;
-                    doubleProcs++;
-
-                    if (doubleProcs % 5 == 1)
-                    {
-                        Debug.Log($"<color=yellow>[LightTower]</color> ⚡⚡ DOUBLE JUDGMENT! (Rate thực tế: {(float)doubleProcs / totalShots * 100:F1}%)");
-                    }
-                }
+                finalDamage *= tripleDamageMultiplier;
+                tripleShots++;
             }
 
-            // Bắn số lượng Orb tương ứng
-            for (int i = 0; i < orbCount; i++)
+            AreaProjectile projectile = projectilePool.Get(FirePoint.position);
+            if (projectile == null) return;
+
+            projectile.SetBlastRadius(stats.blastRadius);
+            projectile.Launch(target, finalDamage);
+
+            if (isTripleDamage)
             {
-                SpawnOrb(target, stats, i);
+                ApplyTripleVisual(projectile);
             }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log(
+                $"<color=yellow>[LightTower]</color> Bắn AoE Light: " +
+                $"DMG={finalDamage:F1}, " +
+                $"Radius={stats.blastRadius:F1}, " +
+                $"x3={isTripleDamage}, " +
+                $"Chance={stats.tripleDamageChance * 100f:F0}%"
+            );
+#endif
         }
 
-        private void SpawnOrb(GameObject target, TowerLevelData stats, int orbIndex)
+        private void ApplyTripleVisual(AreaProjectile projectile)
         {
-            Vector3 spawnPos = transform.position;
+            if (projectile == null) return;
 
-            // Tách quỹ đạo nếu bắn nhiều viên để không đè hình lên nhau
-            if (orbIndex > 0)
+            projectile.transform.localScale *= 1.35f;
+
+            if (projectile.TryGetComponent(out SpriteRenderer sr))
             {
-                float angle = orbIndex * 90f * Mathf.Deg2Rad;
-                spawnPos += new Vector3(Mathf.Cos(angle) * 0.3f, Mathf.Sin(angle) * 0.3f, 0f);
-            }
-
-            OrbProjectile orb = orbPool.Get(spawnPos);
-            if (orb == null) return;
-
-            orb.SetBlastRadius(stats.blastRadius);
-            orb.Launch(target, stats.damage);
-        }
-
-        // ============================
-        // UPGRADE & GIZMOS
-        // ============================
-
-        protected override void OnUpgraded()
-        {
-            if (CurrentLevel == 2)
-            {
-                Debug.Log($"[LightTower] ⚡ PHÁN XÉT UNLOCKED! {doubleOrbChance * 100}% Double, {quadOrbChance * 100}% Quad!");
+                sr.color = new Color(1f, 0.95f, 0.35f, 1f);
             }
         }
 
@@ -137,18 +92,16 @@ namespace TowerDefense.Towers
         {
             base.OnDrawGizmosSelected();
 
+#if UNITY_EDITOR
             if (Data != null)
             {
-                // Lưu ý: blastRadius vẽ ở đây chỉ để preview độ to của vụ nổ, không phải tầm đánh.
-                Gizmos.color = new Color(1f, 0.8f, 0f, 0.15f);
-                Gizmos.DrawSphere(transform.position, CurrentStats.blastRadius);
+                string label =
+                    $"Light AoE: {CurrentStats.blastRadius:F1}\n" +
+                    $"x3 Chance: {CurrentStats.tripleDamageChance * 100f:F0}%";
 
-#if UNITY_EDITOR
-                string label = $"Blast: {CurrentStats.blastRadius:F1}";
-                if (IsJudgmentUnlocked) label += " (+Phán Xét)";
                 UnityEditor.Handles.Label(transform.position + Vector3.up * 0.8f, label);
-#endif
             }
+#endif
         }
     }
 }

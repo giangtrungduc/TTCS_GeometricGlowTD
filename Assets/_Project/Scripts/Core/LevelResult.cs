@@ -4,46 +4,38 @@ namespace TowerDefense.Core
 {
     public class LevelResult
     {
-        public int starCount; // Số sao đạt được
-        public int livesLeft; // Số mạng còn lại khi kết thúc màn
-        public int wavesCleared; // Số wave đã hoàn thành
-        public string levelName; // Level đang chơi
+        [Tooltip("Số sao đạt được khi kết thúc màn (0-3).")]
+        public int starCount;
 
-        /// <summary>
-        /// Kết quả là thắng hay thua.
-        /// true = Win (còn lives > 0 khi hết wave).
-        /// false = Lose (lives = 0).
-        /// </summary>
+        [Tooltip("Số mạng còn lại khi kết thúc màn.")]
+        public int livesLeft;
+
+        [Tooltip("Số wave đã hoàn thành trong màn hiện tại.")]
+        public int wavesCleared;
+
+        [Tooltip("Tên level đang chơi.")]
+        public string levelName;
+
+        [Tooltip("Kết quả trận đấu: true = thắng, false = thua.")]
         public bool isVictory;
 
-        // ============================
-        // CONSTRUCTOR
-        // ============================
         public LevelResult(string levelName, int livesLeft, int wavesCleared)
         {
             this.levelName = levelName;
             this.livesLeft = livesLeft;
             this.wavesCleared = wavesCleared;
-
-            this.isVictory = livesLeft > 0;
-
-            this.starCount = CalculateStars(livesLeft);
+            isVictory = livesLeft > 0;
+            starCount = CalculateStars(livesLeft);
         }
 
-        // ============================
-        // PRIVATE METHODS
-        // ============================
         private int CalculateStars(int lives)
         {
             if (lives > 15) return 3;
-            else if (lives > 10) return 2;
-            else if (lives > 0) return 1;
-            else return 0;
+            if (lives > 10) return 2;
+            if (lives > 0) return 1;
+            return 0;
         }
 
-        // ============================
-        // UTILITY
-        // ============================
         public override string ToString()
         {
             string result = isVictory ? "VICTORY" : "DEFEAT";

@@ -1,87 +1,77 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace TowerDefense.Core
 {
     public class GameManager : ManagerBase<GameManager>
     {
-        // ============================
-        // CẤU HÌNH LEVEL
-        // ============================
-        [Header("Level Settings")]
-        [Tooltip("Tên level hiện tại, dùng để lưu PlayerPrefs")]
-        [SerializeField] private string levelName = "Level1";
+        [Header("Cấu hình level")]
+        [Tooltip("Tên level hiện tại, dùng để lưu PlayerPrefs.")]
+        [SerializeField] private LevelData currentLevelData;
 
-        [Tooltip("Số mạng bắt đầu")]
+        [Tooltip("Số mạng bắt đầu.")]
         [SerializeField] private int startingLives = 20;
 
-        [Tooltip("Số gold bắt đầu")]
+        [Tooltip("Số gold bắt đầu.")]
         [SerializeField] private int startingGold = 200;
 
-        // Trạng thái hiện tại của Game
-        public GameState CurrentState { get; private set; } = GameState.Prepare;
+        public GameState CurrentState { get; private set; } = GameState.Playing;
 
-        // Số wave đã hoàn thành
-        private int wavesCleared = 0;
-
-        // ============================
-        // INIT
-        // ============================
+        private int wavesCleared;
 
         protected override void OnAwake()
         {
             base.OnAwake();
         }
+
         private void Start()
         {
-            if(EconomyManager.Instance != null)
+            Time.timeScale = 1f;
+
+            if (EconomyManager.Instance != null)
             {
                 EconomyManager.Instance.Initialize(startingGold, startingLives);
             }
 
-            ChangeState(GameState.Prepare);
+            wavesCleared = 0;
+            ChangeState(GameState.Playing);
         }
 
-        // ============================
-        // EVENT SUBSCRIBE
-        // ============================
         private void OnEnable()
         {
+            GameEvents.OnWaveCompleted += HandleWaveCompleted;
             GameEvents.OnAllWavesCleared += HandleAllWavesCleared;
             GameEvents.OnLivesChanged += HandleLivesChanged;
-            GameEvents.OnWaveCompleted += HandleWaveCompleted;
-        }
-        private void OnDisable()
-        {
-            GameEvents.OnAllWavesCleared -= HandleAllWavesCleared;
-            GameEvents.OnLivesChanged -= HandleLivesChanged;
-            GameEvents.OnWaveCompleted -= HandleWaveCompleted;
         }
 
-        // ============================
-        // PUBLIC METHODS
-        // ============================
+        private void OnDisable()
+        {
+            GameEvents.OnWaveCompleted -= HandleWaveCompleted;
+            GameEvents.OnAllWavesCleared -= HandleAllWavesCleared;
+            GameEvents.OnLivesChanged -= HandleLivesChanged;
+        }
+
         public void ChangeState(GameState newState)
         {
             if (CurrentState == newState) return;
 
-            GameState previousState = CurrentState;
             CurrentState = newState;
 
             switch (newState)
             {
-                case GameState.Prepare:
-                    Time.timeScale = 1f;
-                    break;
                 case GameState.Playing:
                     Time.timeScale = 1f;
                     break;
+
                 case GameState.Paused:
-                    Time.timeScale = 0f; 
+                    Time.timeScale = 0f;
                     break;
+
                 case GameState.Win:
                     Time.timeScale = 0f;
                     HandleWin();
                     break;
+
                 case GameState.Lose:
                     Time.timeScale = 0f;
                     HandleLose();
@@ -90,44 +80,43 @@ namespace TowerDefense.Core
 
             GameEvents.RaiseGameStateChanged(newState);
         }
-        public void StartPlaying()
-        {
-            if(CurrentState == GameState.Prepare)
-            {
-                ChangeState(GameState.Playing);
-            }
-        }
+
         public void TogglePause()
         {
             if (CurrentState == GameState.Playing)
             {
                 ChangeState(GameState.Paused);
+                return;
             }
-            else if (CurrentState == GameState.Paused)
+
+            if (CurrentState == GameState.Paused)
             {
                 ChangeState(GameState.Playing);
             }
         }
+
         public void RestartLevel()
         {
             Time.timeScale = 1f;
             GameEvents.ClearAllEvents();
-            UnityEngine.SceneManagement.SceneManager.LoadScene(
-                UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
-            );
+
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
-        // ============================
-        // EVENT HANDLERS
-        // ============================
+        private void HandleWaveCompleted(int waveIndex)
+        {
+            if (waveIndex < 0) return;
+
+            wavesCleared = waveIndex + 1;
+        }
 
         private void HandleAllWavesCleared()
         {
-            if (CurrentState == GameState.Playing)
-            {
-                ChangeState(GameState.Win);
-            }
+            if (CurrentState != GameState.Playing) return;
+
+            ChangeState(GameState.Win);
         }
+
         private void HandleLivesChanged(int currentLives)
         {
             if (currentLives <= 0 && CurrentState == GameState.Playing)
@@ -135,55 +124,35 @@ namespace TowerDefense.Core
                 ChangeState(GameState.Lose);
             }
         }
-        private void HandleWaveCompleted(int waveIndex)
-        {
-            wavesCleared = waveIndex + 1;
-        }
 
-        // ============================
-        // WIN / LOSE LOGIC
-        // ============================
-        
-        // Xử lý khi thắng
         private void HandleWin()
         {
             int currentLives = 0;
-            if(EconomyManager.Instance != null)
+
+            if (EconomyManager.Instance != null)
             {
                 currentLives = EconomyManager.Instance.CurrentLives;
             }
 
-            LevelResult result = new LevelResult(levelName, currentLives, wavesCleared);
+            LevelResult result = new LevelResult(currentLevelData.levelName, currentLives, wavesCleared);
 
-            SaveResult(result);
-
+             SaveManager.SaveStars(currentLevelData.levelID, result.starCount);
             GameEvents.RaiseLevelCompleted(result);
         }
 
-        // Xử lý khi thua
         private void HandleLose()
         {
-            LevelResult result = new LevelResult(levelName, 0, wavesCleared);
+            LevelResult result = new LevelResult(currentLevelData.levelName, 0, wavesCleared);
 
             GameEvents.RaiseLevelCompleted(result);
         }
-
-        // Lưu số sao vào PlayerPrefs (chỉ ghi đè nếu tốt hơn).
-        private void SaveResult(LevelResult result)
+        public void QuitToLevelSelect()
         {
-            string key = $"{result.levelName}_Stars";
-            int previousBest = PlayerPrefs.GetInt(key);
+            Time.timeScale = 1f;
+            GameEvents.ClearAllEvents();
 
-            if(result.starCount > previousBest)
-            {
-                PlayerPrefs.SetInt(key, result.starCount);
-                PlayerPrefs.Save();
-            }
+            SceneManager.LoadScene("LevelSelected");
         }
-
-        // ============================
-        // CLEANUP
-        // ============================
         protected override void OnDestroy()
         {
             GameEvents.ClearAllEvents();
