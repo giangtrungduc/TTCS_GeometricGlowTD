@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf9970bffcdcfee4c902f3bb98866b75, type: 3}
+  m_Name: Tower_Sniper
+  m_EditorClassIdentifier: 
+  towerName: Sniper Tower
+  isSlowTower: 0
+  projectilePrefab: {fileID: 5269204306753765556, guid: 48e58f05385a963489dd88eafb122d37, type: 3}
+  shootSound: {fileID: 8300000, guid: b6c8b2e439b721b4187cb09d6f801346, type: 3}
+  levels:
+  - cost: 100
+    damage: 75
+    range: 12
+    fireRate: 0.35
+    slowPercent: 0.3
+    slowDuration: 2
+  - cost: 80
+    damage: 150
+    range: 13
+    fireRate: 0.4
+    slowPercent: 0.3
+    slowDuration: 2
+  - cost: 120
+    damage: 270
+    range: 14
+    fireRate: 0.45
+    slowPercent: 0.3
+    slowDuration: 2
+  - cost: 200
+    damage: 525
+    range: 16
+    fireRate: 0.55
+    slowPercent: 0.3
+    slowDuration: 2

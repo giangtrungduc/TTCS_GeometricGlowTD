@@ -1,170 +1,124 @@
-﻿using UnityEngine;
-using UnityEngine.SceneManagement;
+using System;
+using UnityEngine;
 
 namespace TowerDefense.Core
 {
-    public class GameManager : ManagerBase<GameManager>
+    /// <summary>
+    /// Bộ não của game: Quản lý Tiền (Gold), Máu (Lives), và Trạng thái Thắng/Thua.
+    /// Dùng Singleton để bất kỳ script nào cũng có thể gọi: GameManager.Instance...
+    /// </summary>
+    public class GameManager : MonoBehaviour
     {
-        [Header("Cấu hình level")]
-        [Tooltip("Tên level hiện tại, dùng để lưu PlayerPrefs.")]
-        [SerializeField] private LevelData currentLevelData;
+        public static GameManager Instance { get; private set; }
 
-        [Tooltip("Số mạng bắt đầu.")]
+        [Header("Starting Stats")]
+        [SerializeField] private int startingGold = 300;
         [SerializeField] private int startingLives = 20;
 
-        [Tooltip("Số gold bắt đầu.")]
-        [SerializeField] private int startingGold = 200;
+        public int Gold { get; private set; }
+        public int Lives { get; private set; }
+        public int MaxLives { get; private set; } // Dùng để tính % máu khi tính Sao
+        public bool IsGameOver { get; private set; }
+        public bool IsPaused { get; private set; } // Biến trạng thái Pause
 
-        public GameState CurrentState { get; private set; } = GameState.Playing;
+        // Các Event cơ bản để UI lắng nghe và cập nhật chữ
+        public event Action<int> OnGoldChanged;
+        public event Action<int> OnLivesChanged;
+        public event Action OnGameOver;
+        public event Action<int> OnVictory; // Trả về số sao đạt được
+        public event Action<bool> OnPauseToggled; // Kích hoạt để UI hiện/ẩn bảng Tạm dừng
 
-        private int wavesCleared;
+        [Header("Level Progression")]
+        [Tooltip("Tên của Scene tiếp theo (Ví dụ: Level2). Bỏ trống nếu đây là màn cuối.")]
+        [SerializeField] private string nextLevelName;
+        public string NextLevelName => nextLevelName;
 
-        protected override void OnAwake()
+        private void Awake()
         {
-            base.OnAwake();
+            if (Instance == null) Instance = this;
+            else Destroy(gameObject);
         }
 
         private void Start()
         {
-            Time.timeScale = 1f;
+            Gold = startingGold;
+            Lives = startingLives;
+            MaxLives = startingLives;
+            IsGameOver = false;
+            IsPaused = false;
+            Time.timeScale = 1f; // Chống kẹt freeze khi load lại Scene từ trạng thái Pause
 
-            if (EconomyManager.Instance != null)
+            OnGoldChanged?.Invoke(Gold);
+            OnLivesChanged?.Invoke(Lives);
+        }
+
+        public void AddGold(int amount)
+        {
+            if (IsGameOver || amount <= 0) return;
+            Gold += amount;
+            OnGoldChanged?.Invoke(Gold);
+        }
+
+        public bool SpendGold(int amount)
+        {
+            if (IsGameOver || Gold < amount) return false;
+            Gold -= amount;
+            OnGoldChanged?.Invoke(Gold);
+            return true;
+        }
+
+        public void LoseLife(int amount)
+        {
+            if (IsGameOver) return;
+            Lives -= amount;
+            OnLivesChanged?.Invoke(Lives);
+
+            if (Lives <= 0)
             {
-                EconomyManager.Instance.Initialize(startingGold, startingLives);
+                Lives = 0;
+                GameOver();
             }
-
-            wavesCleared = 0;
-            ChangeState(GameState.Playing);
         }
 
-        private void OnEnable()
+        private void GameOver()
         {
-            GameEvents.OnWaveCompleted += HandleWaveCompleted;
-            GameEvents.OnAllWavesCleared += HandleAllWavesCleared;
-            GameEvents.OnLivesChanged += HandleLivesChanged;
+            IsGameOver = true;
+            OnGameOver?.Invoke();
+            Debug.Log("--- GAME OVER ---");
         }
 
-        private void OnDisable()
+        public void Victory()
         {
-            GameEvents.OnWaveCompleted -= HandleWaveCompleted;
-            GameEvents.OnAllWavesCleared -= HandleAllWavesCleared;
-            GameEvents.OnLivesChanged -= HandleLivesChanged;
-        }
+            if (IsGameOver) return;
+            IsGameOver = true;
 
-        public void ChangeState(GameState newState)
-        {
-            if (CurrentState == newState) return;
+            // --- TÍNH VÀ LƯU SAO ---
+            int stars = 1;
+            if (Lives >= MaxLives) stars = 3; // Hoàn hảo không xước xát
+            else if (Lives >= MaxLives / 2) stars = 2; // Còn trên 50% máu
 
-            CurrentState = newState;
+            // Lấy tên Scene hiện tại làm tên Level để lưu
+            string currentSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            SaveManager.SaveLevelStars(currentSceneName, stars);
 
-            switch (newState)
-            {
-                case GameState.Playing:
-                    Time.timeScale = 1f;
-                    break;
-
-                case GameState.Paused:
-                    Time.timeScale = 0f;
-                    break;
-
-                case GameState.Win:
-                    Time.timeScale = 0f;
-                    HandleWin();
-                    break;
-
-                case GameState.Lose:
-                    Time.timeScale = 0f;
-                    HandleLose();
-                    break;
-            }
-
-            GameEvents.RaiseGameStateChanged(newState);
+            OnVictory?.Invoke(stars);
+            Debug.Log($"--- VICTORY --- Đạt được {stars} Sao!");
         }
 
         public void TogglePause()
         {
-            if (CurrentState == GameState.Playing)
-            {
-                ChangeState(GameState.Paused);
-                return;
-            }
+            // Thắng hoặc thua rồi thì cấm Pause
+            if (IsGameOver) return; 
 
-            if (CurrentState == GameState.Paused)
-            {
-                ChangeState(GameState.Playing);
-            }
-        }
+            IsPaused = !IsPaused;
+            
+            // Đóng băng hoặc Mở băng thời gian
+            Time.timeScale = IsPaused ? 0f : 1f;
 
-        public void RestartLevel()
-        {
-            Time.timeScale = 1f;
-            Scene currentScene = SceneManager.GetActiveScene();
-            SceneLoader.TryLoadScene(currentScene.path, this);
-        }
-
-        private void HandleWaveCompleted(int waveIndex)
-        {
-            if (waveIndex < 0) return;
-
-            wavesCleared = waveIndex + 1;
-        }
-
-        private void HandleAllWavesCleared()
-        {
-            if (CurrentState != GameState.Playing) return;
-
-            ChangeState(GameState.Win);
-        }
-
-        private void HandleLivesChanged(int currentLives)
-        {
-            if (currentLives <= 0 && CurrentState == GameState.Playing)
-            {
-                ChangeState(GameState.Lose);
-            }
-        }
-
-        private void HandleWin()
-        {
-            if (currentLevelData == null)
-            {
-                Debug.LogError("[GameManager] currentLevelData bi thieu, khong the luu ket qua level.");
-                return;
-            }
-
-            int currentLives = 0;
-
-            if (EconomyManager.Instance != null)
-            {
-                currentLives = EconomyManager.Instance.CurrentLives;
-            }
-
-            LevelResult result = new LevelResult(currentLevelData.levelName, currentLives, wavesCleared);
-
-             SaveManager.SaveStars(currentLevelData.levelID, result.starCount);
-            GameEvents.RaiseLevelCompleted(result);
-        }
-
-        private void HandleLose()
-        {
-            if (currentLevelData == null)
-            {
-                Debug.LogError("[GameManager] currentLevelData bi thieu, khong the tao ket qua level.");
-                return;
-            }
-
-            LevelResult result = new LevelResult(currentLevelData.levelName, 0, wavesCleared);
-
-            GameEvents.RaiseLevelCompleted(result);
-        }
-        public void QuitToLevelSelect()
-        {
-            Time.timeScale = 1f;
-            SceneLoader.TryLoadScene(SceneLoader.LevelSelectScene, this);
-        }
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
+            // Bắn tín hiệu để UI mở/đóng bảng Pause
+            OnPauseToggled?.Invoke(IsPaused);
+            
+            Debug.Log(IsPaused ? "Game Paused" : "Game Resumed");
         }
     }
 }

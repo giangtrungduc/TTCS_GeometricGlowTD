@@ -7,92 +7,94 @@ namespace TowerDefense.UI
 {
     public class MainMenuUI : MonoBehaviour
     {
-        [Header("Menu")]
-        [Tooltip("Button bắt đầu trò chơi")]
-        [SerializeField] private Button startButton;
-        [Tooltip("Button mở cài đặt")]
-        [SerializeField] private Button settingsButton;
-        [Tooltip("Button thoát trò chơi")]
-        [SerializeField] private Button quitButton;
-
-        [Header("Settings Menu")]
-        [Tooltip("Panel cài đặt")]
+        [Header("Panels")]
         [SerializeField] private GameObject settingsPanel;
-        [Tooltip("Slider điều chỉnh âm lượng nhạc")]
-        [SerializeField] private Slider musicVolumeSlider;
-        [Tooltip("Slider điều chỉnh âm lượng hiệu ứng")]
-        [SerializeField] private Slider sfxVolumeSlider;
-        [Tooltip("Button đóng cài đặt")]
-        [SerializeField] private Button closeButton;
+        [SerializeField] private Button btnPlayGame;
+        [SerializeField] private Button btnSetting;
+        [SerializeField] private Button btnQuitGame;
+        [SerializeField] private Button btnCloseSetting;
+
+        [Header("Sliders")]
+        [SerializeField] private Slider bgmSlider;
+        [SerializeField] private Slider sfxSlider;
 
         private void Start()
         {
-            // Ẩn panel cài đặt khi bắt đầu
-            settingsPanel.SetActive(false);
+            if (settingsPanel != null) settingsPanel.SetActive(false);
 
-            if(musicVolumeSlider != null)
+            if (AudioManager.Instance != null)
             {
-                musicVolumeSlider.onValueChanged.AddListener(OnMusicChanged);
-                musicVolumeSlider.value = SaveManager.LoadMusicVolume();
-            }
-            if(sfxVolumeSlider != null)
-            {
-                sfxVolumeSlider.onValueChanged.AddListener(OnSFXChanged);
-                sfxVolumeSlider.value = SaveManager.LoadSFXVolume();
-            }
+                if (bgmSlider != null)
+                {
+                    bgmSlider.value = AudioManager.Instance.GetBGMVolume();
+                    bgmSlider.onValueChanged.AddListener(OnBgmVolumeChanged);
+                }
 
-            if(startButton != null) startButton.onClick.AddListener(OnStartButtonClicked);
-            if(settingsButton != null) settingsButton.onClick.AddListener(OnSettingsButtonClicked);
-            if(quitButton != null) quitButton.onClick.AddListener(OnQuitButtonClicked);
-            if(closeButton != null) closeButton.onClick.AddListener(OnCloseButtonClicked);
+                if (sfxSlider != null)
+                {
+                    sfxSlider.value = AudioManager.Instance.GetSFXVolume();
+                    sfxSlider.onValueChanged.AddListener(OnSfxVolumeChanged);
+                }
+
+                if (btnPlayGame != null)
+                {
+                    btnPlayGame.onClick.AddListener(PlayGame);
+                }
+
+                if (btnSetting != null)
+                {
+                    btnSetting.onClick.AddListener(OpenSettings);
+                }
+
+                if (btnQuitGame != null)
+                {
+                    btnQuitGame.onClick.AddListener(QuitGame);
+                }
+
+                if (btnCloseSetting != null)
+                {
+                    btnCloseSetting.onClick.AddListener(CloseSettings);
+                }
+            }
         }
 
-        private void OnDestroy()
+        public void PlayGame()
         {
-            if(startButton != null) startButton.onClick.RemoveListener(OnStartButtonClicked);
-            if(settingsButton != null) settingsButton.onClick.RemoveListener(OnSettingsButtonClicked);
-            if(quitButton != null) quitButton.onClick.RemoveListener(OnQuitButtonClicked);
-            if(closeButton != null) closeButton.onClick.RemoveListener(OnCloseButtonClicked);
-
-            if(musicVolumeSlider != null)
-            {
-                musicVolumeSlider.onValueChanged.RemoveListener(OnMusicChanged);
-            }
-            if(sfxVolumeSlider != null)
-            {
-                sfxVolumeSlider.onValueChanged.RemoveListener(OnSFXChanged);
-            }
+            AudioManager.Instance.PlayButtonClick();
+            SceneManager.LoadScene("LevelSelect");
         }
 
-        private void OnStartButtonClicked()
+        public void OpenSettings()
         {
-            SceneLoader.TryLoadScene(SceneLoader.LevelSelectScene, this);
+            AudioManager.Instance.PlayButtonClick();
+            if (settingsPanel != null) settingsPanel.SetActive(true);
         }
-        private void OnSettingsButtonClicked()
+
+        public void CloseSettings()
         {
-            settingsPanel.SetActive(true);
+            AudioManager.Instance.PlayButtonClick();
+            if (settingsPanel != null)
+            {
+                settingsPanel.SetActive(false);
+                PlayerPrefs.Save();
+            }
         }
-        private void OnQuitButtonClicked()
+
+        public void QuitGame()
         {
+            AudioManager.Instance.PlayButtonClick();
+            Debug.Log("Đã bấm Thoát Game!");
             Application.Quit();
         }
-        private void OnCloseButtonClicked()
+
+        private void OnBgmVolumeChanged(float value)
         {
-            settingsPanel.SetActive(false);
+            if (AudioManager.Instance != null) AudioManager.Instance.SetBGMVolume(value);
         }
-        private void OnMusicChanged(float value)
+
+        private void OnSfxVolumeChanged(float value)
         {
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.SetMusicVolume(value);
-            }
-        }
-        private void OnSFXChanged(float value)
-        {
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.SetSfxVolume(value);
-            }
+            if (AudioManager.Instance != null) AudioManager.Instance.SetSFXVolume(value);
         }
     }
 }
